@@ -8,18 +8,21 @@ use App\Enums\VehicleStatus;
 use App\Enums\VehicleType;
 use App\Http\Requests\VehicleRequest;
 use App\Models\Vehicle;
+use App\Services\ImageUploadService;
 use App\Services\VehicleStatusService;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class VehicleController extends Controller
 {
-    public function __construct(private VehicleStatusService $statusService) {}
+    public function __construct(
+        private VehicleStatusService $statusService,
+        private ImageUploadService $imageService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -71,7 +74,7 @@ class VehicleController extends Controller
         $data['status'] = VehicleStatus::Available;
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('vehicles', 'public');
+            $data['photo'] = $this->imageService->upload($request->file('photo'), 'vehicles', 'vehicle_');
         }
 
         $vehicle = Vehicle::create($data);
@@ -125,11 +128,16 @@ class VehicleController extends Controller
         $data = $request->validated();
         $data['is_active'] = $request->boolean('is_active');
 
-        if ($request->hasFile('photo')) {
+        if ($request->boolean('delete_photo')) {
             if ($vehicle->photo !== null) {
-                Storage::disk('public')->delete($vehicle->photo);
+                $this->imageService->delete($vehicle->photo, 'vehicles');
             }
-            $data['photo'] = $request->file('photo')->store('vehicles', 'public');
+            $data['photo'] = null;
+        } elseif ($request->hasFile('photo')) {
+            if ($vehicle->photo !== null) {
+                $this->imageService->delete($vehicle->photo, 'vehicles');
+            }
+            $data['photo'] = $this->imageService->upload($request->file('photo'), 'vehicles', 'vehicle_');
         } else {
             unset($data['photo']);
         }
@@ -163,6 +171,10 @@ class VehicleController extends Controller
             throw ValidationException::withMessages([
                 'vehicle' => 'Kendaraan memiliki booking/rental aktif dan tidak dapat dihapus.',
             ]);
+        }
+
+        if ($vehicle->photo !== null) {
+            $this->imageService->delete($vehicle->photo, 'vehicles');
         }
 
         $code = $vehicle->code;
