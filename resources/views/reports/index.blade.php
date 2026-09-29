@@ -5,7 +5,13 @@
 @section('content')
     <x-page-header
         title="Laporan Operasional & Keuangan"
-        subtitle="Data faktual untuk evaluasi bisnis. Seluruh angka dihitung langsung dari database." />
+        subtitle="Data faktual untuk evaluasi bisnis. Seluruh angka dihitung langsung dari database.">
+        <x-slot name="actions">
+            <a href="{{ route('reports.export', request()->query()) }}" class="btn btn-success">
+                <i class="fa-solid fa-file-excel me-1"></i> Ekspor ke Excel (CSV)
+            </a>
+        </x-slot>
+    </x-page-header>
 
     @php($tabs = [
         'income' => ['label' => 'Laporan Pemasukan', 'icon' => 'fa-money-bill-wave'],
