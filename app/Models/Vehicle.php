@@ -93,4 +93,15 @@ class Vehicle extends Model
     {
         return $this->is_active && $this->status !== VehicleStatus::Rented;
     }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (! $this->photo) {
+            return null;
+        }
+
+        $filename = basename($this->photo);
+
+        return url('uploads/vehicles/'.$filename);
+    }
 }
