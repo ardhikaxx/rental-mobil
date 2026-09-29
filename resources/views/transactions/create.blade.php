@@ -14,11 +14,13 @@
         $defaultStart = $prefill['start_at'] ?? now()->addDay()->setTime(9, 0)->format('Y-m-d\TH:i');
         $defaultEnd = $prefill['end_at'] ?? now()->addDays(3)->setTime(17, 0)->format('Y-m-d\TH:i');
         $rates = $vehicles->mapWithKeys(fn ($vehicle) => [$vehicle->id => $vehicle->daily_rate])->all();
+        $driverRates = $drivers->mapWithKeys(fn ($driver) => [$driver->id => $driver->daily_rate])->all();
     @endphp
 
     <form method="POST" action="{{ route('transactions.store') }}"
           id="transactionCostForm"
-          data-rates='@json($rates)'>
+          data-rates='@json($rates)'
+          data-driver-rates='@json($driverRates)'>
         @csrf
 
         <div class="row g-3">
@@ -67,6 +69,50 @@
                     </div>
                 </x-panel>
 
+                <x-panel title="Layanan Supir / Driver">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withDriverSwitch" name="with_driver" value="1" @checked(old('with_driver'))>
+                        <label class="form-check-label fw-semibold" for="withDriverSwitch">
+                            Sewa Termasuk Supir / Driver
+                        </label>
+                        <div class="form-hint">Pilih jika penyewa membutuhkan layanan pengemudi profesional dari Jaya Trans.</div>
+                    </div>
+                    <div id="driverSelectionArea" style="{{ old('with_driver') ? '' : 'display:none' }}" class="mt-3">
+                        <x-input name="driver_id" label="Pilih Supir" type="select"
+                                 :options="$drivers->mapWithKeys(fn ($d) => [$d->id => $d->name.' ('.$d->code.') — '.rupiah($d->daily_rate).'/hari — Telp: '.$d->phone])->all()"
+                                 :value="old('driver_id')"
+                                 placeholder="Pilih supir yang tersedia"
+                                 hint="Biaya supir akan otomatis ditambahkan ke tagihan sewa." />
+                    </div>
+                </x-panel>
+
+                <x-panel title="Jaminan / Security Deposit">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <x-input name="deposit_type" label="Bentuk Jaminan" type="select"
+                                     :options="[
+                                         'tunai' => 'Uang Tunai (Cash)',
+                                         'transfer' => 'Transfer Bank',
+                                         'ktp_motor' => 'KTP Asli + Titip Motor & STNK',
+                                         'ktp_ijazah' => 'KTP Asli + Ijazah / KK',
+                                         'lainnya' => 'Bentuk Jaminan Lainnya',
+                                     ]"
+                                     :value="old('deposit_type', 'tunai')"
+                                     placeholder="Pilih bentuk jaminan" />
+                        </div>
+                        <div class="col-md-6">
+                            <x-input name="deposit_amount" label="Nominal Uang Jaminan (Rp)" type="number"
+                                     :value="old('deposit_amount', 500000)"
+                                     hint="Nominal deposit uang (bisa diisi 0 jika hanya jaminan fisik)." />
+                        </div>
+                        <div class="col-12">
+                            <x-input name="deposit_notes" label="Catatan Fisik Titipan Jaminan"
+                                     :value="old('deposit_notes')"
+                                     placeholder="Misal: KTP Asli ditahan garasi + Motor Honda Vario P 1234 XY" />
+                        </div>
+                    </div>
+                </x-panel>
+
                 <x-panel title="Biaya & Pembayaran">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -93,8 +139,9 @@
                 <div class="panel" style="position:sticky;top:76px">
                     <div class="panel-header"><h2>Ringkasan Biaya</h2></div>
                     <div class="panel-body">
-                        <div class="kv"><span class="kv-label">Tarif harian</span><span class="kv-value" id="previewRate">-</span></div>
+                        <div class="kv"><span class="kv-label">Tarif harian mobil</span><span class="kv-value" id="previewRate">-</span></div>
                         <div class="kv"><span class="kv-label">Durasi rental</span><span class="kv-value" id="previewDays">-</span></div>
+                        <div class="kv"><span class="kv-label">Biaya supir</span><span class="kv-value text-primary" id="previewDriverFee">Rp 0</span></div>
                         <div class="kv"><span class="kv-label">Subtotal</span><span class="kv-value" id="previewSubtotal">-</span></div>
                         <div class="kv"><span class="kv-label">Diskon</span><span class="kv-value text-danger" id="previewDiscount">- Rp 0</span></div>
                         <div class="kv"><span class="kv-label fw-bold text-dark">Total Rental</span><span class="kv-value" id="previewTotal" style="font-size:1.05rem">Rp 0</span></div>
