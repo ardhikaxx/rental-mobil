@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -224,5 +225,167 @@ class ReportController extends Controller
             ->withQueryString();
 
         return ['customersReport' => $customers];
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('view-reports');
+
+        $type = in_array($request->query('type'), ['income', 'vehicles', 'customers'], true)
+            ? $request->query('type')
+            : 'income';
+
+        [$from, $to] = $this->resolvePeriod($request);
+        $dateStr = $from->format('Ymd').'-sd-'.$to->format('Ymd');
+        $filename = "laporan-{$type}-{$dateStr}.csv";
+
+        return response()->streamDownload(function () use ($type, $request, $from, $to) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            if ($type === 'income') {
+                fputcsv($handle, [
+                    'No',
+                    'No. Transaksi',
+                    'Tanggal Bayar',
+                    'Nama Pelanggan',
+                    'No. Identitas',
+                    'No. Telepon',
+                    'Kendaraan',
+                    'No. Polisi',
+                    'Layanan',
+                    'Supir',
+                    'Tipe Pembayaran',
+                    'Metode',
+                    'Jumlah (Rp)',
+                    'Pencatat',
+                    'Catatan',
+                ]);
+
+                $query = Payment::query()
+                    ->with(['transaction.customer', 'transaction.vehicle', 'transaction.driver', 'recorder:id,name'])
+                    ->whereBetween('paid_at', [$from->toDateString(), $to->toDateString()])
+                    ->orderBy('paid_at', 'desc');
+
+                if ($request->filled('method')) {
+                    $query->where('method', $request->query('method'));
+                }
+                if ($request->filled('vehicle_id')) {
+                    $query->whereHas('transaction', fn ($q) => $q->where('vehicle_id', $request->query('vehicle_id')));
+                }
+                if ($request->filled('status')) {
+                    $query->whereHas('transaction', fn ($q) => $q->where('status', $request->query('status')));
+                }
+
+                $no = 1;
+                foreach ($query->lazy(200) as $payment) {
+                    $trx = $payment->transaction;
+                    fputcsv($handle, [
+                        $no++,
+                        $trx?->transaction_number ?? '-',
+                        $payment->paid_at->format('Y-m-d'),
+                        $trx?->customer?->name ?? '-',
+                        $trx?->customer?->id_number ?? '-',
+                        $trx?->customer?->phone ?? '-',
+                        $trx?->vehicle ? ($trx->vehicle->brand.' '.$trx->vehicle->model) : '-',
+                        $trx?->vehicle?->license_plate ?? '-',
+                        $trx?->with_driver ? 'Dengan Supir' : 'Lepas Kunci',
+                        $trx?->driver?->name ?? '-',
+                        $payment->type->label(),
+                        $payment->method->label(),
+                        $payment->amount,
+                        $payment->recorder?->name ?? 'Sistem',
+                        $payment->notes ?? '-',
+                    ]);
+                }
+            } elseif ($type === 'vehicles') {
+                fputcsv($handle, [
+                    'No',
+                    'Kode Unit',
+                    'Merk & Model',
+                    'No. Polisi',
+                    'Tipe',
+                    'Tahun',
+                    'Tarif/Hari (Rp)',
+                    'Status',
+                    'Total Sewa (Kali)',
+                    'Total Hari Disewa',
+                    'Total Pendapatan (Rp)',
+                    'Jumlah Servis',
+                    'Total Biaya Servis (Rp)',
+                    'Laba Bersih Armada (Rp)',
+                ]);
+
+                $vehicleData = $this->vehicleReport($request);
+                $no = 1;
+                foreach ($vehicleData['vehicleRows'] as $row) {
+                    $v = $row['vehicle'];
+                    $profit = $row['revenue'] - $row['maintenanceCost'];
+                    fputcsv($handle, [
+                        $no++,
+                        $v->code,
+                        $v->brand.' '.$v->model,
+                        $v->license_plate,
+                        $v->type->label(),
+                        $v->year,
+                        $v->daily_rate,
+                        $v->status->label(),
+                        $row['rentals'],
+                        $row['days'],
+                        $row['revenue'],
+                        $row['maintenanceCount'],
+                        $row['maintenanceCost'],
+                        $profit,
+                    ]);
+                }
+            } else {
+                fputcsv($handle, [
+                    'No',
+                    'Nama Pelanggan',
+                    'No. KTP / Identitas',
+                    'No. SIM',
+                    'Status Verifikasi',
+                    'No. Telepon',
+                    'Email',
+                    'Alamat',
+                    'Total Transaksi Sewa',
+                    'Transaksi Aktif',
+                    'Total Belanja (Rp)',
+                    'Rental Terakhir',
+                ]);
+
+                $customers = Customer::query()
+                    ->has('transactions')
+                    ->search($request->query('search'))
+                    ->withCount(['transactions', 'transactions as active_transactions' => fn ($query) => $query->whereIn('status', TransactionStatus::blocking())])
+                    ->withSum('transactions as total_value', 'total')
+                    ->withMax('transactions as last_rental', 'start_at')
+                    ->when($request->filled('active'), fn ($query) => $query->whereHas('transactions', fn ($q) => $q->whereIn('status', TransactionStatus::blocking())))
+                    ->orderByDesc('total_value')
+                    ->get();
+
+                $no = 1;
+                foreach ($customers as $c) {
+                    fputcsv($handle, [
+                        $no++,
+                        $c->name,
+                        $c->id_number,
+                        $c->sim_number ?? '-',
+                        $c->verification_status === 'verified' ? 'Terverifikasi' : ($c->verification_status === 'rejected' ? 'Ditolak' : 'Menunggu / Belum'),
+                        $c->phone,
+                        $c->email ?? '-',
+                        $c->address ?? '-',
+                        $c->transactions_count,
+                        $c->active_transactions,
+                        $c->total_value ?? 0,
+                        $c->last_rental ? tanggal($c->last_rental) : '-',
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 }
