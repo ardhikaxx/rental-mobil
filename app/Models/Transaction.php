@@ -37,6 +37,16 @@ class Transaction extends Model
         'late_fee',
         'status',
         'notes',
+        'with_driver',
+        'driver_id',
+        'driver_rate',
+        'driver_fee',
+        'deposit_type',
+        'deposit_amount',
+        'deposit_status',
+        'deposit_notes',
+        'deposit_refunded_at',
+        'deposit_refunded_by',
     ];
 
     /**
@@ -58,6 +68,11 @@ class Transaction extends Model
             'total' => 'integer',
             'late_minutes' => 'integer',
             'late_fee' => 'integer',
+            'with_driver' => 'boolean',
+            'driver_rate' => 'integer',
+            'driver_fee' => 'integer',
+            'deposit_amount' => 'integer',
+            'deposit_refunded_at' => 'datetime',
         ];
     }
 
@@ -71,9 +86,19 @@ class Transaction extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function depositRefundedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deposit_refunded_by');
     }
 
     public function handoverUser(): BelongsTo
