@@ -6,6 +6,7 @@ use App\Enums\PaymentType;
 use App\Enums\TransactionStatus;
 use App\Enums\VehicleStatus;
 use App\Models\Customer;
+use App\Models\Driver;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
@@ -44,9 +45,21 @@ class TransactionService
             $isDraft = (string) ($data['save_as_draft'] ?? '') === '1';
 
             $days = $this->rentalDays($start, $end);
-            $subtotal = $days * (int) $vehicle->daily_rate;
+
+            $withDriver = ! empty($data['with_driver']);
+            $driverId = $withDriver && ! empty($data['driver_id']) ? (int) $data['driver_id'] : null;
+            $driver = $driverId ? Driver::find($driverId) : null;
+            $driverRate = $driver ? (int) $driver->daily_rate : 0;
+            $driverFee = $withDriver ? ($driverRate * $days) : 0;
+
+            $subtotal = ($days * (int) $vehicle->daily_rate) + $driverFee;
             $discount = (int) ($data['discount'] ?? 0);
             $total = max(0, $subtotal - $discount);
+
+            $depositAmount = (int) ($data['deposit_amount'] ?? 0);
+            $depositType = ! empty($data['deposit_type']) ? $data['deposit_type'] : null;
+            $depositNotes = $data['deposit_notes'] ?? null;
+            $depositStatus = ($depositAmount > 0 || ! empty($depositNotes)) ? 'pending' : 'none';
 
             $transaction = Transaction::create([
                 'transaction_number' => $this->numbers->transactionNumber(),
@@ -56,6 +69,14 @@ class TransactionService
                 'booking_source' => $data['booking_source'],
                 'start_at' => $start,
                 'end_at' => $end,
+                'with_driver' => $withDriver,
+                'driver_id' => $driverId,
+                'driver_rate' => $driverRate,
+                'driver_fee' => $driverFee,
+                'deposit_type' => $depositType,
+                'deposit_amount' => $depositAmount,
+                'deposit_status' => $depositStatus,
+                'deposit_notes' => $depositNotes,
                 'daily_rate' => $vehicle->daily_rate,
                 'rental_days' => $days,
                 'subtotal' => $subtotal,
@@ -111,7 +132,14 @@ class TransactionService
             $this->availability->assertAvailable($vehicle, $start, $end, $transaction->id);
 
             $days = $this->rentalDays($start, $end);
-            $subtotal = $days * (int) $vehicle->daily_rate;
+
+            $withDriver = ! empty($data['with_driver']);
+            $driverId = $withDriver && ! empty($data['driver_id']) ? (int) $data['driver_id'] : null;
+            $driver = $driverId ? Driver::find($driverId) : null;
+            $driverRate = $driver ? (int) $driver->daily_rate : 0;
+            $driverFee = $withDriver ? ($driverRate * $days) : 0;
+
+            $subtotal = ($days * (int) $vehicle->daily_rate) + $driverFee;
             $discount = (int) ($data['discount'] ?? 0);
             $total = max(0, $subtotal - $discount);
 
@@ -121,6 +149,13 @@ class TransactionService
                 ]);
             }
 
+            $depositAmount = (int) ($data['deposit_amount'] ?? 0);
+            $depositType = ! empty($data['deposit_type']) ? $data['deposit_type'] : null;
+            $depositNotes = $data['deposit_notes'] ?? null;
+            $depositStatus = ($depositAmount > 0 || ! empty($depositNotes))
+                ? ($transaction->deposit_status === 'none' ? 'pending' : $transaction->deposit_status)
+                : 'none';
+
             $previousStatus = $transaction->status->value;
 
             $transaction->update([
@@ -128,6 +163,14 @@ class TransactionService
                 'start_at' => $start,
                 'end_at' => $end,
                 'rental_days' => $days,
+                'with_driver' => $withDriver,
+                'driver_id' => $driverId,
+                'driver_rate' => $driverRate,
+                'driver_fee' => $driverFee,
+                'deposit_type' => $depositType,
+                'deposit_amount' => $depositAmount,
+                'deposit_status' => $depositStatus,
+                'deposit_notes' => $depositNotes,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'total' => $total,
