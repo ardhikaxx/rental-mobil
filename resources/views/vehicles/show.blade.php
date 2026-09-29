@@ -96,7 +96,7 @@
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <span class="avatar-circle" style="width:64px;height:48px;border-radius:8px">
                         @if ($vehicle->photo)
-                            <img src="{{ asset('storage/'.$vehicle->photo) }}" alt="{{ $vehicle->code }}">
+                            <img src="{{ $vehicle->photo_url }}" alt="{{ $vehicle->code }}">
                         @else
                             <i class="fa-solid fa-car-side"></i>
                         @endif
