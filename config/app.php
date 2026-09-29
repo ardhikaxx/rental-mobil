@@ -17,6 +17,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Author & Copyright
+    |--------------------------------------------------------------------------
+    |
+    | Identitas pemilik dan pengembang aplikasi. Nilai ini ditampilkan pada
+    | footer antarmuka (sidebar) dan dapat digunakan pada dokumen cetak.
+    |
+    */
+
+    'author' => [
+        'name' => env('APP_AUTHOR_NAME', 'Yanuar Ardhika Rahmadhani Ubaidillah'),
+        'username' => env('APP_AUTHOR_USERNAME', 'ardhikaxx'),
+        'url' => env('APP_AUTHOR_URL', 'https://github.com/ardhikaxx'),
+        'copyright' => env('APP_AUTHOR_COPYRIGHT', 'Copyright (c) 2024 - 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved.'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

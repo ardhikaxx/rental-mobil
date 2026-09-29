@@ -143,6 +143,40 @@ a:hover {
     gap: .7rem;
 }
 
+.sidebar-footer {
+    border-top: 1px solid var(--border);
+    padding: .7rem 1rem .85rem;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+
+.sidebar-footer .sidebar-footer-name {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-footer .sidebar-footer-copyright {
+    font-size: .68rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-footer a {
+    color: var(--text-muted);
+}
+
+.sidebar-footer a:hover {
+    color: var(--accent);
+    text-decoration: none;
+}
+
 .sidebar-user .avatar {
     width: 34px;
     height: 34px;

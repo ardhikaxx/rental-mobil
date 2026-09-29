@@ -24,4 +24,9 @@
             <div class="user-role">{{ auth()->user()->role->label() }}</div>
         </div>
     </div>
+
+    <div class="sidebar-footer">
+        <span class="sidebar-footer-name">{{ config('app.author.name') }}</span>
+        <span class="sidebar-footer-copyright">© {{ now()->year }} {{ config('app.author.name') }}</span>
+    </div>
 </aside>
