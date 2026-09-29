@@ -16,4 +16,11 @@ class InspectionPhoto extends Model
     {
         return $this->belongsTo(Inspection::class);
     }
+
+    public function getPhotoUrlAttribute(): string
+    {
+        $filename = basename($this->path);
+
+        return url('uploads/inspections/'.$filename);
+    }
 }
