@@ -65,11 +65,23 @@
                             <label class="form-label">Foto Kendaraan</label>
                             <div class="d-flex align-items-center gap-3">
                                 @if ($vehicle->photo)
-                                    <img src="{{ asset('storage/'.$vehicle->photo) }}" alt="{{ $vehicle->code }}"
-                                         class="vehicle-thumb" style="width:96px;height:64px">
+                                    <div class="position-relative">
+                                        <img src="{{ $vehicle->photo_url }}" alt="{{ $vehicle->code }}"
+                                             class="vehicle-thumb rounded border" style="width:96px;height:64px;object-fit:cover">
+                                    </div>
                                 @endif
-                                <input type="file" class="form-control @error('photo') is-invalid @enderror"
-                                       name="photo" accept="image/jpeg,image/png,image/webp">
+                                <div class="flex-grow-1">
+                                    <input type="file" class="form-control @error('photo') is-invalid @enderror"
+                                           name="photo" accept="image/jpeg,image/png,image/webp">
+                                    @if ($vehicle->photo)
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="delete_photo" id="delete_photo" value="1">
+                                            <label class="form-check-label text-danger small" for="delete_photo">
+                                                <i class="fa-solid fa-trash me-1"></i>Hapus foto kendaraan saat ini
+                                            </label>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                             <div class="form-hint">Kosongkan jika tidak ingin mengganti foto. Format JPG/PNG/WebP, maks 2 MB.</div>
                             @error('photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
