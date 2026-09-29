@@ -16,6 +16,8 @@
     <form method="POST" action="{{ route('transactions.update', $transaction) }}"
           id="transactionCostForm"
           data-rates='@json([$transaction->vehicle_id => $transaction->daily_rate])'
+          data-rate="{{ $transaction->daily_rate }}"
+          data-driver-rates='@json($drivers->pluck('daily_rate', 'id'))'
           data-discount="{{ $transaction->discount }}"
           data-dp="{{ $transaction->paidAmount() }}">
         @csrf
@@ -58,6 +60,50 @@
                     </div>
                 </x-panel>
 
+                <x-panel title="Layanan Supir / Driver">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withDriverSwitch" name="with_driver" value="1" @checked(old('with_driver', $transaction->with_driver))>
+                        <label class="form-check-label fw-semibold" for="withDriverSwitch">
+                            Sewa Termasuk Supir / Driver
+                        </label>
+                        <div class="form-hint">Pilih jika penyewa membutuhkan layanan pengemudi profesional dari Jaya Trans.</div>
+                    </div>
+                    <div id="driverSelectionArea" style="{{ old('with_driver', $transaction->with_driver) ? '' : 'display:none' }}" class="mt-3">
+                        <x-input name="driver_id" label="Pilih Supir" type="select"
+                                 :options="$drivers->mapWithKeys(fn ($d) => [$d->id => $d->name.' ('.$d->code.') — '.rupiah($d->daily_rate).'/hari — Telp: '.$d->phone])->all()"
+                                 :value="old('driver_id', $transaction->driver_id)"
+                                 placeholder="Pilih supir yang tersedia"
+                                 hint="Biaya supir akan otomatis dihitung ke tagihan sewa." />
+                    </div>
+                </x-panel>
+
+                <x-panel title="Jaminan / Security Deposit">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <x-input name="deposit_type" label="Bentuk Jaminan" type="select"
+                                     :options="[
+                                         'tunai' => 'Uang Tunai (Cash)',
+                                         'transfer' => 'Transfer Bank',
+                                         'ktp_motor' => 'KTP Asli + Titip Motor & STNK',
+                                         'ktp_ijazah' => 'KTP Asli + Ijazah / KK',
+                                         'lainnya' => 'Bentuk Jaminan Lainnya',
+                                     ]"
+                                     :value="old('deposit_type', $transaction->deposit_type ?? 'tunai')"
+                                     placeholder="Pilih bentuk jaminan" />
+                        </div>
+                        <div class="col-md-6">
+                            <x-input name="deposit_amount" label="Nominal Uang Jaminan (Rp)" type="number"
+                                     :value="old('deposit_amount', $transaction->deposit_amount ?? 500000)"
+                                     hint="Nominal deposit uang (bisa diisi 0 jika hanya jaminan fisik)." />
+                        </div>
+                        <div class="col-12">
+                            <x-input name="deposit_notes" label="Catatan Fisik Titipan Jaminan"
+                                     :value="old('deposit_notes', $transaction->deposit_notes)"
+                                     placeholder="Misal: KTP Asli ditahan garasi + Motor Honda Vario P 1234 XY" />
+                        </div>
+                    </div>
+                </x-panel>
+
                 <x-panel title="Catatan">
                     <x-input name="notes" label="Catatan Transaksi" type="textarea" :value="old('notes', $transaction->notes)" />
                 </x-panel>
@@ -71,6 +117,7 @@
                         <div class="kv"><span class="kv-label">Status</span><span class="kv-value"><x-status-badge kind="transaction" :value="$transaction->status" /></span></div>
                         <div class="kv"><span class="kv-label">Tarif harian</span><span class="kv-value" id="previewRate">-</span></div>
                         <div class="kv"><span class="kv-label">Durasi rental</span><span class="kv-value" id="previewDays">-</span></div>
+                        <div class="kv"><span class="kv-label">Biaya supir</span><span class="kv-value text-primary" id="previewDriverFee">Rp 0</span></div>
                         <div class="kv"><span class="kv-label">Subtotal</span><span class="kv-value" id="previewSubtotal">-</span></div>
                         <div class="kv"><span class="kv-label">Diskon</span><span class="kv-value text-danger" id="previewDiscount">-</span></div>
                         <div class="kv"><span class="kv-label fw-bold text-dark">Total Rental</span><span class="kv-value" id="previewTotal" style="font-size:1.05rem">-</span></div>
