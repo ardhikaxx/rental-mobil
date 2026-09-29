@@ -14,7 +14,7 @@
     <div class="row g-3">
         <div class="col-lg-7">
             <x-panel title="Identitas Pelanggan">
-                <form method="POST" action="{{ route('customers.update', $customer) }}">
+                <form method="POST" action="{{ route('customers.update', $customer) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -23,7 +23,10 @@
                             <x-input name="name" label="Nama Lengkap" :value="$customer->name" required />
                         </div>
                         <div class="col-md-6">
-                            <x-input name="id_number" label="Nomor Identitas (KTP)" :value="$customer->id_number" required />
+                            <x-input name="id_number" label="Nomor Identitas (NIK/KTP)" :value="$customer->id_number" required />
+                        </div>
+                        <div class="col-md-6">
+                            <x-input name="sim_number" label="Nomor SIM A" :value="$customer->sim_number" placeholder="Misal: 1234-5678-901234" />
                         </div>
                         <div class="col-md-6">
                             <x-input name="phone" label="Nomor Telepon" :value="$customer->phone" required />
@@ -36,6 +39,60 @@
                         </div>
                         <div class="col-12">
                             <x-input name="address" label="Alamat" :value="$customer->address" placeholder="Opsional" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="ktp_photo">Foto / Dokumen KTP</label>
+                                @if ($customer->ktp_photo)
+                                    <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-light border rounded">
+                                        <img src="{{ route('media.customer-ktp', $customer) }}" alt="KTP"
+                                             class="rounded border" style="width:60px;height:40px;object-fit:cover">
+                                        <div class="flex-grow-1">
+                                            <a href="{{ route('media.customer-ktp', $customer) }}" target="_blank" class="small fw-semibold text-primary">
+                                                <i class="fa-solid fa-up-right-from-square me-1"></i>Lihat KTP
+                                            </a>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" name="delete_ktp_photo" id="delete_ktp_photo" value="1">
+                                                <label class="form-check-label text-danger small" for="delete_ktp_photo">
+                                                    <i class="fa-solid fa-trash me-1"></i>Hapus KTP
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                <input type="file" name="ktp_photo" id="ktp_photo" class="form-control @error('ktp_photo') is-invalid @enderror" accept="image/*">
+                                <div class="form-hint">
+                                    {{ $customer->ktp_photo ? 'Pilih file baru jika ingin mengganti KTP.' : 'Format JPG/PNG/WebP, maks. 5MB.' }}
+                                </div>
+                                @error('ktp_photo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="sim_photo">Foto / Dokumen SIM A</label>
+                                @if ($customer->sim_photo)
+                                    <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-light border rounded">
+                                        <img src="{{ route('media.customer-sim', $customer) }}" alt="SIM"
+                                             class="rounded border" style="width:60px;height:40px;object-fit:cover">
+                                        <div class="flex-grow-1">
+                                            <a href="{{ route('media.customer-sim', $customer) }}" target="_blank" class="small fw-semibold text-primary">
+                                                <i class="fa-solid fa-up-right-from-square me-1"></i>Lihat SIM A
+                                            </a>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input" type="checkbox" name="delete_sim_photo" id="delete_sim_photo" value="1">
+                                                <label class="form-check-label text-danger small" for="delete_sim_photo">
+                                                    <i class="fa-solid fa-trash me-1"></i>Hapus SIM A
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                <input type="file" name="sim_photo" id="sim_photo" class="form-control @error('sim_photo') is-invalid @enderror" accept="image/*">
+                                <div class="form-hint">
+                                    {{ $customer->sim_photo ? 'Pilih file baru jika ingin mengganti SIM A.' : 'Format JPG/PNG/WebP, maks. 5MB.' }}
+                                </div>
+                                @error('sim_photo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
                         </div>
                         <div class="col-12">
                             <x-input name="notes" label="Catatan" type="textarea" :value="$customer->notes" />
