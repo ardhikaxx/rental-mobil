@@ -21,6 +21,7 @@ class Navigation
             ['label' => 'Pengembalian', 'route' => 'return.index', 'icon' => 'fa-rotate-left', 'match' => 'return*', 'roles' => ['super_admin', 'admin', 'staff']],
             ['label' => 'Pelanggan', 'route' => 'customers.index', 'icon' => 'fa-users', 'match' => 'customers*', 'roles' => ['super_admin', 'admin', 'staff']],
             ['label' => 'Kendaraan', 'route' => 'vehicles.index', 'icon' => 'fa-car-side', 'match' => 'vehicles*', 'roles' => ['super_admin', 'admin', 'staff']],
+            ['label' => 'Supir / Driver', 'route' => 'drivers.index', 'icon' => 'fa-user-tie', 'match' => 'drivers*', 'roles' => ['super_admin', 'admin', 'staff']],
             ['label' => 'Pembayaran', 'route' => 'payments.index', 'icon' => 'fa-money-bill-transfer', 'match' => 'payments*', 'roles' => ['super_admin', 'admin']],
             ['label' => 'Kalender Booking', 'route' => 'calendar.index', 'icon' => 'fa-calendar-days', 'match' => 'calendar*', 'roles' => ['super_admin', 'admin']],
             ['label' => 'Pemeriksaan', 'route' => 'inspections.index', 'icon' => 'fa-clipboard-check', 'match' => 'inspections*', 'roles' => ['super_admin', 'admin', 'staff']],
@@ -29,6 +30,7 @@ class Navigation
             ['label' => 'Pengguna', 'route' => 'users.index', 'icon' => 'fa-user-shield', 'match' => 'users*', 'roles' => ['super_admin']],
             ['label' => 'Audit Log', 'route' => 'audit-logs.index', 'icon' => 'fa-clock-rotate-left', 'match' => 'audit-logs*', 'roles' => ['super_admin']],
             ['label' => 'Pengaturan', 'route' => 'settings.index', 'icon' => 'fa-gear', 'match' => 'settings*', 'roles' => ['super_admin']],
+            ['label' => 'Panduan Sistem', 'route' => 'guide.index', 'icon' => 'fa-book-open', 'match' => 'panduan*', 'roles' => []],
         ];
 
         $role = $user->role->value;
