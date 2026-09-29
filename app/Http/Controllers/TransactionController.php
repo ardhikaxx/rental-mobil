@@ -12,6 +12,7 @@ use App\Enums\VehicleStatus;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Customer;
+use App\Models\Driver;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\Vehicle;
@@ -38,7 +39,7 @@ class TransactionController extends Controller
         $payment = $request->query('payment');
 
         $query = Transaction::query()
-            ->with(['customer:id,name', 'vehicle:id,code,brand,model,license_plate'])
+            ->with(['customer:id,name', 'vehicle:id,code,brand,model,license_plate', 'driver:id,code,name'])
             ->withSum('payments as paid_amount', 'amount');
 
         if ($search !== null && trim($search) !== '') {
@@ -48,7 +49,8 @@ class TransactionController extends Controller
                     ->orWhereHas('customer', fn ($b) => $b->where('name', 'like', "%{$term}%"))
                     ->orWhereHas('customer', fn ($b) => $b->where('phone', 'like', "%{$term}%"))
                     ->orWhereHas('vehicle', fn ($b) => $b->where('license_plate', 'like', "%{$term}%"))
-                    ->orWhereHas('vehicle', fn ($b) => $b->where('code', 'like', "%{$term}%"));
+                    ->orWhereHas('vehicle', fn ($b) => $b->where('code', 'like', "%{$term}%"))
+                    ->orWhereHas('driver', fn ($b) => $b->where('name', 'like', "%{$term}%"));
             });
         }
 
@@ -88,11 +90,21 @@ class TransactionController extends Controller
             'transactions' => $transactions,
             'statuses' => TransactionStatus::filterOptions(),
             'search' => $search,
+            'selectedStatus' => $status,
             'filterStatus' => $status,
+            'selectedPayment' => $payment,
             'filterPayment' => $payment,
+            'from' => $request->query('from'),
             'filterFrom' => $request->query('from'),
+            'to' => $request->query('to'),
             'filterTo' => $request->query('to'),
             'sort' => $sort,
+            'counts' => [
+                'total' => Transaction::count(),
+                'active' => Transaction::whereIn('status', TransactionStatus::blocking())->count(),
+                'awaiting' => Transaction::where('status', TransactionStatus::AwaitingPayment->value)->count(),
+                'completed' => Transaction::where('status', TransactionStatus::Completed->value)->count(),
+            ],
         ]);
     }
 
@@ -117,6 +129,7 @@ class TransactionController extends Controller
         return view('transactions.create', [
             'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'phone', 'id_number']),
             'vehicles' => $candidates,
+            'drivers' => Driver::available()->orderBy('name')->get(['id', 'code', 'name', 'phone', 'daily_rate']),
             'bookingSources' => BookingSource::options(),
             'paymentMethods' => PaymentMethod::options(),
             'prefill' => [
@@ -146,9 +159,11 @@ class TransactionController extends Controller
     public function show(Request $request, Transaction $transaction): View
     {
         $transaction->load([
-            'customer',
+            'customer.verifiedBy:id,name',
             'vehicle',
+            'driver',
             'creator:id,name',
+            'depositRefundedBy:id,name',
             'handoverUser:id,name',
             'returnUser:id,name',
             'payments.recorder:id,name',
@@ -199,10 +214,11 @@ class TransactionController extends Controller
             ]);
         }
 
-        $transaction->load('customer', 'vehicle');
+        $transaction->load('customer', 'vehicle', 'driver');
 
         return view('transactions.edit', [
             'transaction' => $transaction,
+            'drivers' => Driver::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name', 'phone', 'daily_rate']),
             'bookingSources' => BookingSource::options(),
         ]);
     }
@@ -260,6 +276,7 @@ class TransactionController extends Controller
         $transaction->load([
             'customer',
             'vehicle',
+            'driver',
             'creator:id,name',
             'payments.recorder:id,name',
         ]);
@@ -273,5 +290,72 @@ class TransactionController extends Controller
                 Setting::query()->pluck('value', 'key')->all(),
             ),
         ]);
+    }
+
+    public function spk(Transaction $transaction): View
+    {
+        $transaction->load([
+            'customer.verifiedBy:id,name',
+            'vehicle',
+            'driver',
+            'creator:id,name',
+            'payments.recorder:id,name',
+        ]);
+        $transaction->setAttribute('paid_amount', $transaction->paidAmount());
+
+        return view('transactions.spk', [
+            'transaction' => $transaction,
+            'settings' => Setting::defaults(),
+            'values' => array_merge(
+                Setting::defaults(),
+                Setting::query()->pluck('value', 'key')->all(),
+            ),
+        ]);
+    }
+
+    public function updateDeposit(Request $request, Transaction $transaction): RedirectResponse
+    {
+        $this->authorize('manage-transactions');
+
+        $validated = $request->validate([
+            'deposit_status' => ['required', 'string', 'in:pending,held,refunded,forfeited'],
+            'deposit_notes' => ['nullable', 'string', 'max:1000'],
+        ], [], [
+            'deposit_status' => 'status jaminan',
+            'deposit_notes' => 'catatan jaminan',
+        ]);
+
+        $data = [
+            'deposit_status' => $validated['deposit_status'],
+            'deposit_notes' => $validated['deposit_notes'] ?? $transaction->deposit_notes,
+        ];
+
+        if ($validated['deposit_status'] === 'refunded') {
+            $data['deposit_refunded_at'] = now();
+            $data['deposit_refunded_by'] = $request->user()->id;
+        }
+
+        $transaction->update($data);
+
+        $statusLabels = [
+            'pending' => 'Menunggu Setor',
+            'held' => 'Ditahan Garasi',
+            'refunded' => 'Sudah Dikembalikan',
+            'forfeited' => 'Diklaim / Hangus',
+        ];
+
+        $label = $statusLabels[$validated['deposit_status']] ?? $validated['deposit_status'];
+
+        $transaction->logs()->create([
+            'user_id' => $request->user()->id,
+            'action' => 'deposit_updated',
+            'from_status' => $transaction->status->value,
+            'to_status' => $transaction->status->value,
+            'description' => "Status jaminan/deposit diubah menjadi '{$label}' oleh {$request->user()->name}.",
+        ]);
+
+        AuditLogger::log('update', 'transactions', "Status deposit transaksi {$transaction->transaction_number} diubah menjadi {$label}.", $transaction);
+
+        return back()->with('success', "Status jaminan/deposit berhasil diperbarui menjadi {$label}.");
     }
 }
