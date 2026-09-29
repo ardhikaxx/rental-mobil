@@ -16,6 +16,9 @@
             <a href="{{ route('transactions.invoice', $transaction) }}" class="btn btn-outline-primary" target="_blank">
                 <i class="fa-solid fa-print me-1"></i> Invoice
             </a>
+            <a href="{{ route('transactions.spk', $transaction) }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fa-solid fa-file-contract me-1"></i> Cetak SPK
+            </a>
             @if ($canEdit)
                 <a href="{{ route('transactions.edit', $transaction) }}" class="btn btn-outline-primary">
                     <i class="fa-solid fa-pen me-1"></i> Ubah
@@ -99,18 +102,114 @@
             <x-panel title="Pelanggan">
                 <div class="kv"><span class="kv-label">Nama</span>
                     <span class="kv-value"><a href="{{ route('customers.show', $transaction->customer) }}">{{ $transaction->customer?->name }}</a></span></div>
-                <div class="kv"><span class="kv-label">Identitas</span><span class="kv-value">{{ $transaction->customer?->id_number }}</span></div>
+                <div class="kv"><span class="kv-label">Identitas (KTP)</span>
+                    <span class="kv-value d-flex align-items-center gap-1 justify-content-end">
+                        {{ $transaction->customer?->id_number }}
+                        @if ($transaction->customer?->verification_status === 'verified')
+                            <span class="badge bg-success-subtle text-success p-1" title="KTP Terverifikasi"><i class="fa-solid fa-circle-check"></i></span>
+                        @else
+                            <span class="badge bg-warning-subtle text-warning p-1" title="KTP Belum Terverifikasi"><i class="fa-solid fa-clock"></i></span>
+                        @endif
+                    </span>
+                </div>
+                <div class="kv"><span class="kv-label">Nomor SIM A</span>
+                    <span class="kv-value">{{ $transaction->customer?->sim_number ?: 'Belum diisi' }}</span></div>
                 <div class="kv"><span class="kv-label">Telepon</span><span class="kv-value">{{ $transaction->customer?->phone }}</span></div>
                 <div class="kv"><span class="kv-label">Sumber booking</span>
                     <span class="kv-value"><x-status-badge kind="booking_source" :value="$transaction->booking_source" /></span></div>
                 <div class="kv"><span class="kv-label">Dibuat oleh</span><span class="kv-value">{{ $transaction->creator?->name ?? '-' }}</span></div>
             </x-panel>
 
+            <x-panel title="Layanan & Supir">
+                <div class="kv">
+                    <span class="kv-label">Jenis Layanan</span>
+                    <span class="kv-value">
+                        @if ($transaction->with_driver)
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                <i class="fa-solid fa-user-tie me-1"></i> Dengan Supir
+                            </span>
+                        @else
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                <i class="fa-solid fa-key me-1"></i> Lepas Kunci
+                            </span>
+                        @endif
+                    </span>
+                </div>
+                @if ($transaction->with_driver)
+                    <div class="kv">
+                        <span class="kv-label">Supir Ditugaskan</span>
+                        <span class="kv-value fw-semibold text-primary">
+                            {{ $transaction->driver?->name ?? 'Belum ditentukan' }}
+                        </span>
+                    </div>
+                    @if ($transaction->driver)
+                        <div class="kv"><span class="kv-label">Kontak Supir</span><span class="kv-value">{{ $transaction->driver->phone }}</span></div>
+                        <div class="kv"><span class="kv-label">Tarif Supir / Hari</span><span class="kv-value">{{ rupiah($transaction->driver_rate) }}</span></div>
+                        <div class="kv"><span class="kv-label">Total Jasa Supir</span><span class="kv-value fw-semibold">{{ rupiah($transaction->driver_fee) }}</span></div>
+                    @endif
+                @endif
+            </x-panel>
+
+            <x-panel title="Jaminan / Security Deposit">
+                <div class="kv">
+                    <span class="kv-label">Jenis Jaminan</span>
+                    <span class="kv-value fw-semibold">{{ $transaction->deposit_type ? ucfirst($transaction->deposit_type) : 'Jaminan Standar' }}</span>
+                </div>
+                <div class="kv">
+                    <span class="kv-label">Nominal Deposit</span>
+                    <span class="kv-value fw-bold {{ $transaction->deposit_amount > 0 ? 'text-primary' : '' }}">
+                        {{ $transaction->deposit_amount > 0 ? rupiah($transaction->deposit_amount) : 'Rp 0' }}
+                    </span>
+                </div>
+                <div class="kv">
+                    <span class="kv-label">Status Jaminan</span>
+                    <span class="kv-value">
+                        @php
+                            $depositBadges = [
+                                'pending' => ['bg' => 'bg-warning-subtle text-warning border-warning-subtle', 'label' => 'Menunggu Setor'],
+                                'held' => ['bg' => 'bg-info-subtle text-info border-info-subtle', 'label' => 'Ditahan Garasi'],
+                                'refunded' => ['bg' => 'bg-success-subtle text-success border-success-subtle', 'label' => 'Dikembalikan'],
+                                'forfeited' => ['bg' => 'bg-danger-subtle text-danger border-danger-subtle', 'label' => 'Hangus / Diklaim'],
+                                'none' => ['bg' => 'bg-light text-muted border', 'label' => 'Tanpa Deposit'],
+                            ];
+                            $db = $depositBadges[$transaction->deposit_status] ?? ['bg' => 'bg-light text-dark', 'label' => $transaction->deposit_status];
+                        @endphp
+                        <span class="badge {{ $db['bg'] }} border">{{ $db['label'] }}</span>
+                    </span>
+                </div>
+                @if ($transaction->deposit_notes)
+                    <div class="form-hint mt-2 mb-2"><i class="fa-solid fa-receipt me-1"></i> {{ $transaction->deposit_notes }}</div>
+                @endif
+                @if ($transaction->deposit_refunded_at)
+                    <div class="kv"><span class="kv-label">Dikembalikan</span>
+                        <span class="kv-value">{{ tanggal_waktu($transaction->deposit_refunded_at) }} ({{ $transaction->depositRefundedBy?->name ?? 'Staff' }})</span></div>
+                @endif
+
+                @if ($canManage && $transaction->deposit_status !== 'none')
+                    <div class="border-top pt-2 mt-2">
+                        <form method="POST" action="{{ route('transactions.deposit.update', $transaction) }}" class="d-flex flex-column gap-2">
+                            @csrf
+                            <div class="d-flex gap-2">
+                                <select name="deposit_status" class="form-select form-select-sm">
+                                    <option value="pending" @selected($transaction->deposit_status === 'pending')>Menunggu Setor</option>
+                                    <option value="held" @selected($transaction->deposit_status === 'held')>Ditahan Garasi</option>
+                                    <option value="refunded" @selected($transaction->deposit_status === 'refunded')>Dikembalikan (Refund)</option>
+                                    <option value="forfeited" @selected($transaction->deposit_status === 'forfeited')>Hangus / Klaim Denda</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap">
+                                    Update
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
+            </x-panel>
+
             <x-panel title="Kendaraan">
                 <div class="d-flex align-items-center gap-3 mb-2">
                     <span class="avatar-circle" style="width:56px;height:42px;border-radius:6px">
                         @if ($transaction->vehicle?->photo)
-                            <img src="{{ asset('storage/'.$transaction->vehicle->photo) }}" alt="kendaraan">
+                            <img src="{{ $transaction->vehicle->photo_url }}" alt="kendaraan">
                         @else
                             <i class="fa-solid fa-car-side"></i>
                         @endif
@@ -124,7 +223,7 @@
                 </div>
                 <div class="kv"><span class="kv-label">Status kendaraan</span>
                     <span class="kv-value"><x-status-badge kind="vehicle" :value="$transaction->vehicle?->status" /></span></div>
-                <div class="kv"><span class="kv-label">Tarif harian</span><span class="kv-value">{{ rupiah($transaction->daily_rate) }}</span></div>
+                <div class="kv"><span class="kv-label">Tarif harian mobil</span><span class="kv-value">{{ rupiah($transaction->daily_rate) }}</span></div>
             </x-panel>
 
             <x-panel title="Periode Rental">
@@ -151,8 +250,14 @@
             <x-panel title="Keuangan">
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="kv"><span class="kv-label">Subtotal ({{ $transaction->rental_days }} hari × {{ rupiah($transaction->daily_rate) }})</span>
-                            <span class="kv-value">{{ rupiah($transaction->subtotal) }}</span></div>
+                        <div class="kv"><span class="kv-label">Sewa mobil ({{ $transaction->rental_days }} hari × {{ rupiah($transaction->daily_rate) }})</span>
+                            <span class="kv-value">{{ rupiah($transaction->daily_rate * $transaction->rental_days) }}</span></div>
+                        @if ($transaction->with_driver)
+                            <div class="kv"><span class="kv-label">Jasa supir ({{ $transaction->rental_days }} hari × {{ rupiah($transaction->driver_rate) }})</span>
+                                <span class="kv-value text-primary">+ {{ rupiah($transaction->driver_fee) }}</span></div>
+                        @endif
+                        <div class="kv"><span class="kv-label fw-semibold">Subtotal</span>
+                            <span class="kv-value fw-semibold">{{ rupiah($transaction->subtotal) }}</span></div>
                         <div class="kv"><span class="kv-label">Diskon</span><span class="kv-value text-danger">- {{ rupiah($transaction->discount) }}</span></div>
                         <div class="kv"><span class="kv-label">Denda keterlambatan</span>
                             <span class="kv-value {{ $transaction->late_fee > 0 ? 'text-danger' : '' }}">{{ rupiah($transaction->late_fee) }}</span></div>
