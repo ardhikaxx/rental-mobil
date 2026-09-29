@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\BookingSource;
 use App\Enums\PaymentMethod;
+use App\Models\Driver;
 use App\Models\Vehicle;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,6 +36,14 @@ class StoreTransactionRequest extends FormRequest
             'booking_source' => ['required', Rule::in(array_keys(BookingSource::options()))],
             'start_at' => ['required', 'date', 'after:now'],
             'end_at' => ['required', 'date', 'after:start_at'],
+            'with_driver' => ['nullable', 'boolean'],
+            'driver_id' => [
+                'nullable', 'required_if:with_driver,1,true', 'integer',
+                Rule::exists('drivers', 'id')->where('is_active', true),
+            ],
+            'deposit_type' => ['nullable', 'string', 'max:50'],
+            'deposit_amount' => ['nullable', 'integer', 'min:0'],
+            'deposit_notes' => ['nullable', 'string', 'max:1000'],
             'discount' => ['nullable', 'integer', 'min:0'],
             'dp_amount' => ['nullable', 'integer', 'min:0'],
             'dp_method' => ['nullable', Rule::in(array_keys(PaymentMethod::options()))],
@@ -50,6 +59,7 @@ class StoreTransactionRequest extends FormRequest
         $this->merge([
             'start_at' => $normalize($this->input('start_at')),
             'end_at' => $normalize($this->input('end_at')),
+            'with_driver' => $this->boolean('with_driver'),
         ]);
     }
 
@@ -64,6 +74,11 @@ class StoreTransactionRequest extends FormRequest
             'booking_source' => 'sumber booking',
             'start_at' => 'waktu mulai rental',
             'end_at' => 'rencana pengembalian',
+            'with_driver' => 'opsi dengan supir',
+            'driver_id' => 'supir / driver',
+            'deposit_type' => 'jenis jaminan',
+            'deposit_amount' => 'nominal uang jaminan',
+            'deposit_notes' => 'catatan jaminan',
             'discount' => 'diskon',
             'dp_amount' => 'uang muka',
             'notes' => 'catatan',
@@ -95,6 +110,14 @@ class StoreTransactionRequest extends FormRequest
 
             $days = (int) max(1, ceil($startAt->diffInHours($endAt) / 24));
             $subtotal = $days * (int) $vehicle->daily_rate;
+
+            if ($this->boolean('with_driver') && $this->input('driver_id')) {
+                $driver = Driver::find($this->input('driver_id'));
+                if ($driver) {
+                    $subtotal += ($days * (int) $driver->daily_rate);
+                }
+            }
+
             $discount = (int) $this->input('discount', 0);
             $dp = (int) $this->input('dp_amount', 0);
             $total = max(0, $subtotal - $discount);
