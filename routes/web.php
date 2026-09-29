@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\MaintenanceController;
@@ -17,7 +19,33 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Uploads streaming route (no storage:link required)
+| Serves files with caching, content-type and ETag, exactly like sepeda-listrik
+|--------------------------------------------------------------------------
+*/
+Route::get('/uploads/{path}', function (string $path) {
+    $cleanPath = str_replace(['..', '\\'], ['', '/'], $path);
+    $fullPath = storage_path('uploads/'.$cleanPath);
+
+    if (! File::exists($fullPath) || File::isDirectory($fullPath)) {
+        abort(404);
+    }
+
+    $file = File::get($fullPath);
+    $type = File::mimeType($fullPath);
+    $lastModified = File::lastModified($fullPath);
+
+    return response($file, 200)
+        ->header('Content-Type', $type)
+        ->header('Cache-Control', 'public, max-age=31536000, immutable')
+        ->header('Last-Modified', gmdate('D, d M Y H:i:s', $lastModified).' GMT')
+        ->header('ETag', md5($file));
+})->where('path', '.*')->name('uploads');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +75,7 @@ Route::middleware(['auth', 'role:super_admin,admin,staff'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/kendaraan', [VehicleController::class, 'index'])->name('vehicles.index');
+    Route::get('/supir', [DriverController::class, 'index'])->name('drivers.index');
     Route::get('/pelanggan', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/transaksi', [TransactionController::class, 'index'])->name('transactions.index');
 
@@ -58,14 +87,24 @@ Route::middleware(['auth', 'role:super_admin,admin,staff'])->group(function () {
     Route::post('/pemeriksaan', [InspectionController::class, 'store'])->name('inspections.store');
 
     Route::get('/perawatan', [MaintenanceController::class, 'index'])->name('maintenances.index');
+    Route::get('/panduan', [GuideController::class, 'index'])->name('guide.index');
 });
 
 Route::middleware(['auth', 'role:super_admin,admin'])->group(function () {
+    Route::get('/supir/buat', [DriverController::class, 'create'])->name('drivers.create');
+    Route::post('/supir', [DriverController::class, 'store'])->name('drivers.store');
+    Route::get('/supir/{driver}/ubah', [DriverController::class, 'edit'])->name('drivers.edit');
+    Route::put('/supir/{driver}', [DriverController::class, 'update'])->name('drivers.update');
+    Route::delete('/supir/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy');
+
     Route::get('/pelanggan/buat', [CustomerController::class, 'create'])->name('customers.create');
     Route::post('/pelanggan', [CustomerController::class, 'store'])->name('customers.store');
+    Route::post('/pelanggan/{customer}/verifikasi', [CustomerController::class, 'verify'])->name('customers.verify');
+    Route::post('/pelanggan/{customer}/tolak', [CustomerController::class, 'reject'])->name('customers.reject');
 
     Route::get('/transaksi/buat', [TransactionController::class, 'create'])->name('transactions.create');
     Route::post('/transaksi', [TransactionController::class, 'store'])->name('transactions.store');
+    Route::post('/transaksi/{transaction}/deposit/update', [TransactionController::class, 'updateDeposit'])->name('transactions.deposit.update');
 
     Route::get('/pembayaran', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/pembayaran/buat', [PaymentController::class, 'create'])->name('payments.create');
@@ -93,6 +132,7 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::post('/pengguna', [UserController::class, 'store'])->name('users.store');
 
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/laporan/ekspor', [ReportController::class, 'export'])->name('reports.export');
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
     Route::get('/pengaturan', [SettingController::class, 'index'])->name('settings.index');
@@ -107,12 +147,15 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 
 Route::middleware(['auth', 'role:super_admin,admin,staff'])->group(function () {
     Route::get('/media/inspections/{photo}', [MediaController::class, 'inspectionPhoto'])->name('media.inspection-photo');
+    Route::get('/media/customers/{customer}/ktp', [MediaController::class, 'customerKtp'])->name('media.customer-ktp');
+    Route::get('/media/customers/{customer}/sim', [MediaController::class, 'customerSim'])->name('media.customer-sim');
 
     Route::get('/kendaraan/{vehicle}', [VehicleController::class, 'show'])->name('vehicles.show');
 
     Route::get('/pelanggan/{customer}', [CustomerController::class, 'show'])->name('customers.show');
 
     Route::get('/transaksi/{transaction}/invoice', [TransactionController::class, 'invoice'])->name('transactions.invoice');
+    Route::get('/transaksi/{transaction}/spk', [TransactionController::class, 'spk'])->name('transactions.spk');
     Route::get('/transaksi/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
 
     Route::get('/serah-terima/{transaction}', [HandoverController::class, 'create'])->name('handover.create');
