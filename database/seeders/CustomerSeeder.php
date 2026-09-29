@@ -545,5 +545,70 @@ class CustomerSeeder extends Seeder
                 'created_at' => '2026-09-02 11:15:00', 'updated_at' => '2026-09-02 11:15:00',
             ],
         ]);
+
+        // Data verifikasi KTP & SIM A spesifik untuk operasional rental
+        Customer::where('id', 1)->update([
+            'sim_number' => '1004-8504-000123',
+            'verified_at' => '2025-01-14 10:25:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 2)->update([
+            'sim_number' => '1004-9008-000245',
+            'verified_at' => '2025-01-21 14:40:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 3)->update([
+            'sim_number' => '1004-7912-000389',
+            'verified_at' => '2025-02-03 09:55:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 7)->update([
+            'sim_number' => '1004-8802-000412',
+            'verified_at' => '2025-03-07 16:00:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 10)->update([
+            'sim_number' => '1004-9304-000578',
+            'verified_at' => '2025-03-18 10:15:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 20)->update([
+            'sim_number' => '1004-8609-000623',
+            'verified_at' => '2025-04-12 11:30:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 37)->update([
+            'sim_number' => '1004-9107-000789',
+            'verified_at' => '2025-05-19 14:20:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 45)->update([
+            'sim_number' => '1004-8711-000854',
+            'verified_at' => '2025-06-25 09:45:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 53)->update([
+            'sim_number' => '1004-9403-000962',
+            'verified_at' => '2025-07-30 13:10:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 69)->update([
+            'sim_number' => '1004-8905-001047',
+            'verified_at' => '2025-08-15 15:30:00',
+            'verified_by' => 1,
+        ]);
+        Customer::where('id', 104)->update([
+            'sim_number' => '1004-8301-001156',
+            'verification_status' => 'pending',
+            'verified_at' => null,
+            'verified_by' => null,
+        ]);
+        Customer::where('id', 105)->update([
+            'sim_number' => null,
+            'verification_status' => 'rejected',
+            'verified_at' => null,
+            'verified_by' => 1,
+            'rejection_reason' => 'Foto KTP buram, tidak terbaca jelas dan NIK belum terdaftar di Dispendukcapil.',
+        ]);
     }
 }
