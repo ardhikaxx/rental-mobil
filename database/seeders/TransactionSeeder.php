@@ -1715,5 +1715,70 @@ class TransactionSeeder extends Seeder
             ],
 
         ]);
+
+        // Jaminan / Deposit dan Penugasan Supir untuk transaksi operasional terkini
+        Transaction::where('id', 95)->update([
+            'with_driver' => true,
+            'driver_id' => 4,
+            'driver_rate' => 175000,
+            'driver_fee' => 525000,
+            'deposit_type' => 'tunai',
+            'deposit_amount' => 500000,
+            'deposit_status' => 'refunded',
+            'deposit_refunded_at' => '2026-09-24 16:30:00',
+            'deposit_refunded_by' => 6,
+            'deposit_notes' => 'Jaminan uang tunai telah dikembalikan penuh tanpa klaim kerusakan.',
+        ]);
+
+        Transaction::where('id', 98)->update([
+            'deposit_type' => 'tunai',
+            'deposit_amount' => 500000,
+            'deposit_status' => 'held',
+            'deposit_notes' => 'Uang jaminan tunai Rp 500.000 tersimpan di brankas kasir saat serah terima.',
+        ]);
+
+        Transaction::where('id', 101)->update([
+            'with_driver' => true,
+            'driver_id' => 2,
+            'driver_rate' => 150000,
+            'driver_fee' => 750000,
+            'deposit_type' => 'tunai',
+            'deposit_amount' => 500000,
+            'deposit_status' => 'held',
+            'deposit_notes' => 'Uang jaminan tunai Rp 500.000 tersimpan di brankas kasir Jaya Trans.',
+        ]);
+
+        Transaction::where('id', 102)->update([
+            'deposit_type' => 'ktp_motor',
+            'deposit_amount' => 0,
+            'deposit_status' => 'held',
+            'deposit_notes' => 'Titip motor Honda Vario P 4821 LK + STNK Asli di garasi Jaya Trans.',
+        ]);
+
+        Transaction::where('id', 104)->update([
+            'with_driver' => true,
+            'driver_id' => 1,
+            'driver_rate' => 175000,
+            'driver_fee' => 525000,
+            'deposit_type' => 'tunai',
+            'deposit_amount' => 500000,
+            'deposit_status' => 'pending',
+            'deposit_notes' => 'Deposit tunai diserahkan saat serah terima mobil.',
+        ]);
+
+        Transaction::where('id', 105)->update([
+            'deposit_type' => 'ktp_motor',
+            'deposit_amount' => 0,
+            'deposit_status' => 'pending',
+            'deposit_notes' => 'Penyewa akan menitipkan Yamaha NMAX + STNK.',
+        ]);
+
+        Transaction::where('id', 107)->update([
+            'with_driver' => false,
+            'deposit_type' => 'transfer',
+            'deposit_amount' => 1000000,
+            'deposit_status' => 'pending',
+            'deposit_notes' => 'Deposit sewa ke luar pulau Rp 1.000.000 via transfer BCA.',
+        ]);
     }
 }
