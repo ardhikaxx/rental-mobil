@@ -1,5 +1,5 @@
 /**
- * Rental Mobil Nusantara — application scripts.
+ * Sistem Operasional Rental Mobil — application scripts.
  * All feedback (success, error, validation, confirmations) uses SweetAlert2.
  */
 document.addEventListener('DOMContentLoaded', function () {

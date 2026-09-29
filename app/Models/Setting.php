@@ -48,7 +48,7 @@ class Setting extends Model
     public static function defaults(): array
     {
         return [
-            'company_name' => 'Rental Mobil Nusantara',
+            'company_name' => 'Sistem Operasional Rental Mobil',
             'company_address' => 'Jl. Raya Contoh No. 123, Jakarta',
             'company_phone' => '021-555-0123',
             'transaction_prefix' => 'RNT',
