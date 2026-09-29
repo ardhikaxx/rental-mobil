@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\BookingSource;
+use App\Models\Driver;
 use App\Models\Vehicle;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,6 +27,14 @@ class UpdateTransactionRequest extends FormRequest
             'booking_source' => ['required', Rule::in(array_keys(BookingSource::options()))],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after:start_at'],
+            'with_driver' => ['nullable', 'boolean'],
+            'driver_id' => [
+                'nullable', 'required_if:with_driver,1,true', 'integer',
+                Rule::exists('drivers', 'id')->where('is_active', true),
+            ],
+            'deposit_type' => ['nullable', 'string', 'max:50'],
+            'deposit_amount' => ['nullable', 'integer', 'min:0'],
+            'deposit_notes' => ['nullable', 'string', 'max:1000'],
             'discount' => ['nullable', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
@@ -38,6 +47,7 @@ class UpdateTransactionRequest extends FormRequest
         $this->merge([
             'start_at' => $normalize($this->input('start_at')),
             'end_at' => $normalize($this->input('end_at')),
+            'with_driver' => $this->boolean('with_driver'),
         ]);
     }
 
@@ -50,6 +60,11 @@ class UpdateTransactionRequest extends FormRequest
             'booking_source' => 'sumber booking',
             'start_at' => 'waktu mulai rental',
             'end_at' => 'rencana pengembalian',
+            'with_driver' => 'opsi dengan supir',
+            'driver_id' => 'supir / driver',
+            'deposit_type' => 'jenis jaminan',
+            'deposit_amount' => 'nominal uang jaminan',
+            'deposit_notes' => 'catatan jaminan',
             'discount' => 'diskon',
             'notes' => 'catatan',
         ];
@@ -72,7 +87,8 @@ class UpdateTransactionRequest extends FormRequest
                 return;
             }
 
-            $vehicle = Vehicle::find($this->route('transaction')?->vehicle_id ?? $this->input('vehicle_id'));
+            $transaction = $this->route('transaction');
+            $vehicle = $transaction?->vehicle ?? Vehicle::find($transaction?->vehicle_id);
 
             if ($vehicle === null) {
                 return;
@@ -80,6 +96,14 @@ class UpdateTransactionRequest extends FormRequest
 
             $days = (int) max(1, ceil($startAt->diffInHours($endAt) / 24));
             $subtotal = $days * (int) $vehicle->daily_rate;
+
+            if ($this->boolean('with_driver') && $this->input('driver_id')) {
+                $driver = Driver::find($this->input('driver_id'));
+                if ($driver) {
+                    $subtotal += ($days * (int) $driver->daily_rate);
+                }
+            }
+
             $discount = (int) $this->input('discount', 0);
 
             if ($discount > $subtotal) {
