@@ -22,6 +22,15 @@
                 <input type="text" name="search" id="search" class="form-control"
                        value="{{ $search }}" placeholder="Nama, nomor identitas, atau nomor telepon">
             </div>
+            <div class="col-md-4">
+                <label class="form-label" for="status">Status Verifikasi</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">Semua Status Verifikasi</option>
+                    <option value="verified" @selected($statusFilter === 'verified')>Terverifikasi</option>
+                    <option value="pending" @selected($statusFilter === 'pending')>Menunggu Verifikasi</option>
+                    <option value="rejected" @selected($statusFilter === 'rejected')>Ditolak</option>
+                </select>
+            </div>
             <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-magnifying-glass me-1"></i> Cari
@@ -36,14 +45,15 @@
             <x-empty-state
                 icon="fa-users"
                 title="Tidak ada pelanggan ditemukan"
-                text="{{ $search ? 'Tidak ada pelanggan yang cocok dengan pencarian Anda.' : 'Belum ada pelanggan terdaftar.' }}" />
+                text="{{ $search || $statusFilter ? 'Tidak ada pelanggan yang cocok dengan pencarian / filter Anda.' : 'Belum ada pelanggan terdaftar.' }}" />
         @else
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
                             <th>Nama</th>
-                            <th>No. Identitas</th>
+                            <th>No. Identitas & SIM</th>
+                            <th>Status Verifikasi</th>
                             <th>Telepon</th>
                             <th class="text-end">Transaksi</th>
                             <th class="text-end">Total Nilai</th>
@@ -57,7 +67,27 @@
                                     <a href="{{ route('customers.show', $customer) }}" class="cell-title">{{ $customer->name }}</a>
                                     <div class="cell-sub">{{ $customer->email ?: 'Tanpa email' }}</div>
                                 </td>
-                                <td>{{ $customer->id_number }}</td>
+                                <td>
+                                    <div>{{ $customer->id_number }}</div>
+                                    @if ($customer->sim_number)
+                                        <div class="cell-sub"><i class="fa-solid fa-id-badge me-1"></i>SIM: {{ $customer->sim_number }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($customer->isVerified())
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="fa-solid fa-circle-check me-1"></i>Terverifikasi
+                                        </span>
+                                    @elseif ($customer->isPending())
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            <i class="fa-solid fa-hourglass-half me-1"></i>Menunggu
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="fa-solid fa-circle-xmark me-1"></i>Ditolak
+                                        </span>
+                                    @endif
+                                </td>
                                 <td>{{ $customer->phone }}</td>
                                 <td class="text-end-tabular">{{ $customer->transactions_count }}x</td>
                                 <td class="text-end-tabular">{{ rupiah($customer->total_spent ?? 0) }}</td>
