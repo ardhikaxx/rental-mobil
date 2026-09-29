@@ -7,9 +7,13 @@ use Illuminate\Http\UploadedFile;
 
 class PhotoStorage
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     /**
-     * Store validated inspection photos on the public disk and attach them to
-     * the inspection record. Files get random hashed names (no user input).
+     * Store validated inspection photos into storage/uploads/inspections and attach them to
+     * the inspection record. Files are compressed and converted to WebP.
      *
      * @param  array<int, mixed>  $files
      */
@@ -20,8 +24,10 @@ class PhotoStorage
                 continue;
             }
 
+            $filename = $this->imageUploadService->upload($file, 'inspections', 'insp_');
+
             $inspection->photos()->create([
-                'path' => $file->store('inspections', 'public'),
+                'path' => $filename,
             ]);
         }
     }
