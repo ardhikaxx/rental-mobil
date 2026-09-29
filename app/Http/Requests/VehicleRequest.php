@@ -39,6 +39,7 @@ class VehicleRequest extends FormRequest
             'engine_number' => ['nullable', 'string', 'max:60'],
             'daily_rate' => ['required', 'integer', 'min:0', 'max:10000000'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'delete_photo' => ['nullable', 'boolean'],
             'fuel_level' => ['nullable', Rule::in(['empty', 'quarter', 'half', 'three_quarters', 'full'])],
             'notes' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['nullable', 'boolean'],
