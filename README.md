@@ -174,22 +174,5 @@ Dirancang dan dikembangkan dengan penuh dedikasi oleh:
 **[Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx)](https://github.com/ardhikaxx)**
 *Lead Software Architect & Maintainer*
 
-### ⚙️ Identitas Author Terpusat di Config
-
-Identitas penulis aplikasi dikelola dari satu sumber, yaitu `config/app.php` (`app.author.*`), sehingga dapat diimplementasikan otomatis ke footer antarmuka maupun dokumen cetak:
-
-| Key Config | Variabel `.env` | Nilai Default |
-| :--- | :--- | :--- |
-| `app.author.name` | `APP_AUTHOR_NAME` | Yanuar Ardhika Rahmadhani Ubaidillah |
-| `app.author.username` | `APP_AUTHOR_USERNAME` | ardhikaxx |
-| `app.author.url` | `APP_AUTHOR_URL` | https://github.com/ardhikaxx |
-| `app.author.copyright` | `APP_AUTHOR_COPYRIGHT` | Copyright (c) 2024 - 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved. |
-
-Nilai tersebut dirender otomatis pada:
-
-- **Footer sidebar** aplikasi — nama author (tautan ke profil GitHub) beserta tooltip copyright lengkap.
-- **Halaman login** dan **halaman error** — baris credit author di bagian bawah halaman.
-- **Dokumen cetak (invoice)** — copyright lengkap tercetak di kaki halaman.
-- Metadata author juga tercatat pada `composer.json`.
-
 > **Copyright (c) 2024 - 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved.**
+
