@@ -10,7 +10,15 @@
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 </head>
 <body>
-@yield('content')
+<div class="guest-shell">
+    @yield('content')
+
+    <footer class="app-credit">
+        © {{ now()->year }}
+        <a href="{{ config('app.author.url') }}" target="_blank" rel="noopener">{{ config('app.author.name') }}</a>
+        &#64;{{ config('app.author.username') }}
+    </footer>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>

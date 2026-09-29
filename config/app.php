@@ -20,8 +20,9 @@ return [
     | Application Author & Copyright
     |--------------------------------------------------------------------------
     |
-    | Identitas pemilik dan pengembang aplikasi. Nilai ini ditampilkan pada
-    | footer antarmuka (sidebar) dan dapat digunakan pada dokumen cetak.
+    | Identitas pemilik dan pengembang aplikasi. Nilai ini terpusat di sini,
+    | dapat dioverride melalui .env (APP_AUTHOR_*), dan dirender otomatis pada
+    | footer sidebar, halaman login, halaman error, serta dokumen cetak.
     |
     */
 

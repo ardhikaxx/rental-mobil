@@ -590,6 +590,18 @@ a:hover {
 
 /* ------------------------------- Login page ----------------------------- */
 
+.guest-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.guest-shell > .auth-wrap,
+.guest-shell > .error-wrap {
+    flex: 1;
+    min-height: 0;
+}
+
 .auth-wrap {
     min-height: 100vh;
     display: flex;
@@ -652,6 +664,24 @@ a:hover {
     line-height: 1;
 }
 
+/* ----------------------------- Credit footer ---------------------------- */
+
+.app-credit {
+    text-align: center;
+    font-size: .75rem;
+    color: var(--text-muted);
+    padding: .85rem 1rem 1.1rem;
+}
+
+.app-credit a {
+    color: var(--text-muted);
+}
+
+.app-credit a:hover {
+    color: var(--accent);
+    text-decoration: none;
+}
+
 /* ------------------------------ Timeline -------------------------------- */
 
 .timeline {
@@ -690,6 +720,13 @@ a:hover {
 
 .timeline .timeline-text {
     font-size: .87rem;
+}
+
+/* ------------------------------- Charts --------------------------------- */
+
+.chart-box {
+    position: relative;
+    height: 320px;
 }
 
 /* ------------------------------ Misc ------------------------------------ */
@@ -831,6 +868,13 @@ a:hover {
 }
 
 /* ------------------------------ Print (invoice) ------------------------- */
+
+.print-credit {
+    margin: 1rem 0 0;
+    text-align: center;
+    font-size: .72rem;
+    color: var(--text-muted);
+}
 
 @media print {
     .no-print,

@@ -10,23 +10,31 @@
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 </head>
 <body>
-<div class="error-wrap">
-    <div>
-        <div class="error-code">@yield('code', '404')</div>
-        <h1 class="h4 fw-semibold mt-3">@yield('heading', 'Halaman tidak ditemukan')</h1>
-        <p class="text-muted-2 mx-auto" style="max-width:420px">@yield('message', 'Halaman yang Anda minta tidak tersedia.')</p>
-        <div class="mt-4">
-            @auth
-                <a href="{{ route('dashboard') }}" class="btn btn-primary">
-                    <i class="fa-solid fa-gauge-high me-1"></i> Kembali ke Dashboard
-                </a>
-            @else
-                <a href="{{ route('login') }}" class="btn btn-primary">
-                    <i class="fa-solid fa-right-to-bracket me-1"></i> Ke Halaman Login
-                </a>
-            @endauth
+<div class="guest-shell">
+    <div class="error-wrap">
+        <div>
+            <div class="error-code">@yield('code', '404')</div>
+            <h1 class="h4 fw-semibold mt-3">@yield('heading', 'Halaman tidak ditemukan')</h1>
+            <p class="text-muted-2 mx-auto" style="max-width:420px">@yield('message', 'Halaman yang Anda minta tidak tersedia.')</p>
+            <div class="mt-4">
+                @auth
+                    <a href="{{ route('dashboard') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-gauge-high me-1"></i> Kembali ke Dashboard
+                    </a>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> Ke Halaman Login
+                    </a>
+                @endauth
+            </div>
         </div>
     </div>
+
+    <footer class="app-credit">
+        © {{ now()->year }}
+        <a href="{{ config('app.author.url') }}" target="_blank" rel="noopener">{{ config('app.author.name') }}</a>
+        &#64;{{ config('app.author.username') }}
+    </footer>
 </div>
 </body>
 </html>

@@ -26,7 +26,10 @@
     </div>
 
     <div class="sidebar-footer">
-        <span class="sidebar-footer-name">{{ config('app.author.name') }}</span>
-        <span class="sidebar-footer-copyright">© {{ now()->year }} {{ config('app.author.name') }}</span>
+        <a href="{{ config('app.author.url') }}" target="_blank" rel="noopener" class="sidebar-footer-name"
+           title="{{ config('app.author.name') }}">{{ config('app.author.name') }}</a>
+        <span class="sidebar-footer-copyright" title="{{ config('app.author.copyright') }}">
+            © {{ now()->year }} &#64;{{ config('app.author.username') }}
+        </span>
     </div>
 </aside>

@@ -6,6 +6,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
 [![Pest](https://img.shields.io/badge/Tested%20with-Pest-EB4432?style=for-the-badge&logo=pest&logoColor=white)](https://pestphp.com)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](./LICENSE)
+[![Author](https://img.shields.io/badge/Author-Yanuar%20Ardhika%20Rahmadhani%20Ubaidillah-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ardhikaxx)
 
 Aplikasi **Sistem Operasional Rental Mobil** adalah platform manajemen operasional rental kendaraan yang komprehensif dan siap pakai. Mencakup seluruh alur bisnis rental: master kendaraan & pelanggan, transaksi sewa (booking, DP, pelunasan), serah terima, pemeriksaan berkala dengan dokumentasi foto, pengembalian dengan perhitungan denda keterlambatan otomatis, perawatan kendaraan, kalender ketersediaan, laporan keuangan, hingga audit log.
 
@@ -75,7 +76,7 @@ Aplikasi **Sistem Operasional Rental Mobil** adalah platform manajemen operasion
 * **Backend**: Laravel 13.x (PHP 8.4+)
 * **Database**: MySQL 8.0+
 * **Frontend**: Blade Templating, Bootstrap 5.3, FontAwesome 6, SweetAlert2
-* **Testing**: Pest (41+ test fitur)
+* **Testing**: Pest (45+ test fitur)
 * **Code Style**: Laravel Pint (PSR-12)
 
 ---
@@ -172,5 +173,23 @@ Proyek ini dilindungi lisensi **Proprietary Software License (All Rights Reserve
 Dirancang dan dikembangkan dengan penuh dedikasi oleh:
 **[Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx)](https://github.com/ardhikaxx)**
 *Lead Software Architect & Maintainer*
+
+### ⚙️ Identitas Author Terpusat di Config
+
+Identitas penulis aplikasi dikelola dari satu sumber, yaitu `config/app.php` (`app.author.*`), sehingga dapat diimplementasikan otomatis ke footer antarmuka maupun dokumen cetak:
+
+| Key Config | Variabel `.env` | Nilai Default |
+| :--- | :--- | :--- |
+| `app.author.name` | `APP_AUTHOR_NAME` | Yanuar Ardhika Rahmadhani Ubaidillah |
+| `app.author.username` | `APP_AUTHOR_USERNAME` | ardhikaxx |
+| `app.author.url` | `APP_AUTHOR_URL` | https://github.com/ardhikaxx |
+| `app.author.copyright` | `APP_AUTHOR_COPYRIGHT` | Copyright (c) 2024 - 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved. |
+
+Nilai tersebut dirender otomatis pada:
+
+- **Footer sidebar** aplikasi — nama author (tautan ke profil GitHub) beserta tooltip copyright lengkap.
+- **Halaman login** dan **halaman error** — baris credit author di bagian bawah halaman.
+- **Dokumen cetak (invoice)** — copyright lengkap tercetak di kaki halaman.
+- Metadata author juga tercatat pada `composer.json`.
 
 > **Copyright (c) 2024 - 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved.**

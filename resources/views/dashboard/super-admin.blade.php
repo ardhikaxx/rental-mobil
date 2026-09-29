@@ -40,13 +40,15 @@
 
     <div class="row g-3 mb-4">
         <div class="col-lg-7">
-            <x-panel title="Pemasukan 6 Bulan Terakhir">
-                <canvas id="incomeChart" height="220"></canvas>
+            <x-panel title="Pemasukan 6 Bulan Terakhir" class="h-100 mb-0">
+                <div class="chart-box">
+                    <canvas id="incomeChart"></canvas>
+                </div>
             </x-panel>
         </div>
 
         <div class="col-lg-5">
-            <x-panel title="Kendaraan Paling Sering Disewa" :flush="true">
+            <x-panel title="Kendaraan Paling Sering Disewa" class="h-100 mb-0" :flush="true">
                 @if ($topRented->isEmpty())
                     <x-empty-state icon="fa-car" title="Belum ada data"
                         text="Belum ada transaksi yang tercatat untuk periode ini." />
@@ -176,6 +178,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -188,6 +191,7 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
+                                maxTicksLimit: 6,
                                 callback: value => 'Rp ' + Number(value).toLocaleString('id-ID'),
                             },
                             grid: { color: '#eef0f3' },

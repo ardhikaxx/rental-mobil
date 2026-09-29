@@ -2,405 +2,1718 @@
 
 namespace Database\Seeders;
 
-use App\Enums\BookingSource;
-use App\Enums\Completeness;
-use App\Enums\ConditionLevel;
-use App\Enums\FuelLevel;
-use App\Enums\InspectionType;
-use App\Enums\PaymentMethod;
-use App\Enums\PaymentType;
-use App\Enums\TireCondition;
-use App\Enums\TransactionStatus;
-use App\Enums\VehicleStatus;
-use App\Models\Customer;
-use App\Models\Inspection;
-use App\Models\Payment;
 use App\Models\Transaction;
-use App\Models\User;
-use App\Models\Vehicle;
-use App\Services\NumberGenerator;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class TransactionSeeder extends Seeder
 {
-    private User $admin;
-
-    private User $staff;
-
-    private User $owner;
-
-    private NumberGenerator $numbers;
-
+    /**
+     * Histori transaksi rental Jaya Trans — Januari 2025 s/d September 2026.
+     *
+     * Format nomor: RNT-YYYYMMDD-NNNN (prefix dari Setting).
+     * Seluruh data ditulis eksplisit; tidak ada factory, faker, maupun looping.
+     *
+     * Konsistensi yang dijaga:
+     *  - daily_rate = tarif kendaraan pada saat transaksi dibuat.
+     *  - subtotal   = daily_rate × rental_days.
+     *  - total      = subtotal − discount.
+     *  - late_fee   = ceil(late_minutes / 60) × 50000 (grace 60 mnt).
+     *  - status     konsisten dengan tanggal operasional 29 September 2026.
+     *  - FK: customer_id, vehicle_id, created_by, handed_over_by, returned_by
+     *        semuanya ada di tabel masing-masing.
+     *
+     * ID kendaraan yang disewa aktif per 29 Sep 2026:
+     *   V2 (Avanza hitam), V5 (Zenix G), V8 (Raize), V12 (Terios),
+     *   V17 (BR-V), V21 (Ertiga), V27 (Mobilio RS) → status 'rented'.
+     *
+     * ID kendaraan yang dibooking (belum serah terima):
+     *   V7 (Rush), V18 (HR-V), V19 (Xpander), V29 (Xenia 1.5).
+     *
+     * V10 (Yaris), V16 (Mobilio), V23 (Ignis) → perawatan (tidak ada trx aktif).
+     * V14 (Ayla), V25 (Avanza 1.5) → dibersihkan (selesai disewa hari ini).
+     * V30 → tidak_tersedia / nonaktif.
+     */
     public function run(): void
     {
-        $this->admin = User::where('username', 'adminoper')->firstOrFail();
-        $this->staff = User::where('username', 'stafgarasi')->firstOrFail();
-        $this->owner = User::where('username', 'superadmin')->firstOrFail();
-        $this->numbers = app(NumberGenerator::class);
+        Transaction::insert([
 
-        DB::transaction(function () {
-            $this->seedCompletedRental();
-            $this->seedCompletedLateRental();
-            $this->seedActiveRentals();
-            $this->seedUpcomingBookings();
-            $this->seedDraftAndCancelled();
-            $this->seedRecentlyReturned();
-            $this->seedOlderCompletedRental();
-        });
-    }
+            // ── JANUARI 2025 ──────────────────────────────────────────────────
 
-    private function seedCompletedRental(): void
-    {
-        $vehicle = Vehicle::where('code', 'VT-001')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050101800001')->firstOrFail();
+            [
+                'id' => 1,
+                'transaction_number' => 'RNT-20250107-0001',
+                'customer_id' => 1, 'vehicle_id' => 1,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-01-07 08:00:00', 'end_at' => '2025-01-09 08:00:00',
+                'handover_at' => '2025-01-07 08:35:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-01-09 09:20:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 20, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => 'Perjalanan dinas ke Banyuwangi.',
+                'created_at' => '2025-01-06 16:00:00', 'updated_at' => '2025-01-09 09:15:00',
+            ],
+            [
+                'id' => 2,
+                'transaction_number' => 'RNT-20250110-0001',
+                'customer_id' => 3, 'vehicle_id' => 4,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-01-10 09:00:00', 'end_at' => '2025-01-13 09:00:00',
+                'handover_at' => '2025-01-10 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-01-13 08:50:00', 'returned_by' => 7,
+                'daily_rate' => 575000, 'rental_days' => 3,
+                'subtotal' => 1725000, 'discount' => 0, 'total' => 1725000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan keluarga besar di Jember–Probolinggo.',
+                'created_at' => '2025-01-09 15:30:00', 'updated_at' => '2025-01-13 09:05:00',
+            ],
+            [
+                'id' => 3,
+                'transaction_number' => 'RNT-20250114-0001',
+                'customer_id' => 2, 'vehicle_id' => 13,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-01-14 10:00:00', 'end_at' => '2025-01-15 10:00:00',
+                'handover_at' => '2025-01-14 10:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-01-15 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Keperluan antar jemput tamu dari Stasiun Jember.',
+                'created_at' => '2025-01-13 17:10:00', 'updated_at' => '2025-01-15 10:35:00',
+            ],
+            [
+                'id' => 4,
+                'transaction_number' => 'RNT-20250119-0001',
+                'customer_id' => 5, 'vehicle_id' => 21,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-01-19 08:00:00', 'end_at' => '2025-01-22 08:00:00',
+                'handover_at' => '2025-01-19 08:25:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-01-22 10:20:00', 'returned_by' => 7,
+                'daily_rate' => 375000, 'rental_days' => 3,
+                'subtotal' => 1125000, 'discount' => 0, 'total' => 1125000,
+                'late_minutes' => 80, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-01-18 14:00:00', 'updated_at' => '2025-01-22 09:50:00',
+            ],
+            [
+                'id' => 5,
+                'transaction_number' => 'RNT-20250124-0001',
+                'customer_id' => 4, 'vehicle_id' => 16,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-01-24 09:00:00', 'end_at' => '2025-01-27 09:00:00',
+                'handover_at' => '2025-01-24 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-01-27 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 375000, 'rental_days' => 3,
+                'subtotal' => 1125000, 'discount' => 0, 'total' => 1125000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-01-23 11:20:00', 'updated_at' => '2025-01-27 09:10:00',
+            ],
 
-        $start = now()->subDays(13)->setTime(9, 0);
-        $end = now()->subDays(10)->setTime(17, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            // ── FEBRUARI 2025 ─────────────────────────────────────────────────
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Completed, BookingSource::WalkIn, 'Pelanggan lama, sewa liburan keluarga.');
+            [
+                'id' => 6,
+                'transaction_number' => 'RNT-20250203-0001',
+                'customer_id' => 7, 'vehicle_id' => 11,
+                'created_by' => 3, 'booking_source' => 'referral',
+                'start_at' => '2025-02-03 08:00:00', 'end_at' => '2025-02-05 08:00:00',
+                'handover_at' => '2025-02-03 08:30:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-02-05 07:55:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Referensi dari pelanggan tetap.',
+                'created_at' => '2025-02-02 10:00:00', 'updated_at' => '2025-02-05 08:05:00',
+            ],
+            [
+                'id' => 7,
+                'transaction_number' => 'RNT-20250208-0001',
+                'customer_id' => 8, 'vehicle_id' => 5,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-02-08 09:00:00', 'end_at' => '2025-02-12 09:00:00',
+                'handover_at' => '2025-02-08 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-02-12 11:25:00', 'returned_by' => 6,
+                'daily_rate' => 650000, 'rental_days' => 4,
+                'subtotal' => 2600000, 'discount' => 100000, 'total' => 2500000,
+                'late_minutes' => 85, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Wisata keluarga Bromo–Malang–Batu. Diskon pelanggan baru.',
+                'created_at' => '2025-02-07 14:30:00', 'updated_at' => '2025-02-12 10:55:00',
+            ],
+            [
+                'id' => 8,
+                'transaction_number' => 'RNT-20250215-0001',
+                'customer_id' => 9, 'vehicle_id' => 4,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-02-15 08:00:00', 'end_at' => '2025-02-18 08:00:00',
+                'handover_at' => '2025-02-15 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-02-18 08:10:00', 'returned_by' => 7,
+                'daily_rate' => 575000, 'rental_days' => 3,
+                'subtotal' => 1725000, 'discount' => 0, 'total' => 1725000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan kerja ke Surabaya dan Sidoarjo.',
+                'created_at' => '2025-02-14 15:00:00', 'updated_at' => '2025-02-18 08:20:00',
+            ],
+            [
+                'id' => 9,
+                'transaction_number' => 'RNT-20250222-0001',
+                'customer_id' => 10, 'vehicle_id' => 6,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-02-22 10:00:00', 'end_at' => '2025-02-23 10:00:00',
+                'handover_at' => '2025-02-22 10:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-02-23 09:45:00', 'returned_by' => 6,
+                'daily_rate' => 300000, 'rental_days' => 1,
+                'subtotal' => 300000, 'discount' => 0, 'total' => 300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-02-22 09:30:00', 'updated_at' => '2025-02-23 09:50:00',
+            ],
+            [
+                'id' => 10,
+                'transaction_number' => 'RNT-20250226-0001',
+                'customer_id' => 1, 'vehicle_id' => 22,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-02-26 09:00:00', 'end_at' => '2025-02-28 09:00:00',
+                'handover_at' => '2025-02-26 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-02-28 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Perjalanan dinas Jember–Malang.',
+                'created_at' => '2025-02-25 13:00:00', 'updated_at' => '2025-02-28 09:10:00',
+            ],
 
-        $this->pay($tx, (int) round($subtotal / 2), PaymentType::DownPayment, PaymentMethod::Cash, now()->subDays(15)->toDateString(), 'DP saat pemesanan.');
-        $this->pay($tx, $subtotal - (int) round($subtotal / 2), PaymentType::Final, PaymentMethod::Transfer, now()->subDays(10)->toDateString(), 'Pelunasan saat pengambilan.');
+            // ── MARET 2025 ────────────────────────────────────────────────────
 
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 320, FuelLevel::Full, 'Baret halus bumper depan (kerusakan lama).');
-        $this->returnVehicle($tx, $vehicle, $end, (int) $vehicle->odometer - 95, FuelLevel::Half, VehicleStatus::Available, null);
+            [
+                'id' => 11,
+                'transaction_number' => 'RNT-20250305-0001',
+                'customer_id' => 11, 'vehicle_id' => 9,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-03-05 08:00:00', 'end_at' => '2025-03-06 08:00:00',
+                'handover_at' => '2025-03-05 08:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-03-06 07:50:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-03-04 16:00:00', 'updated_at' => '2025-03-06 08:00:00',
+            ],
+            [
+                'id' => 12,
+                'transaction_number' => 'RNT-20250310-0001',
+                'customer_id' => 6, 'vehicle_id' => 15,
+                'created_by' => 4, 'booking_source' => 'referral',
+                'start_at' => '2025-03-10 09:00:00', 'end_at' => '2025-03-12 09:00:00',
+                'handover_at' => '2025-03-10 09:25:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-03-12 10:20:00', 'returned_by' => 7,
+                'daily_rate' => 325000, 'rental_days' => 2,
+                'subtotal' => 650000, 'discount' => 0, 'total' => 650000,
+                'late_minutes' => 20, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-03-09 10:00:00', 'updated_at' => '2025-03-12 10:30:00',
+            ],
+            [
+                'id' => 13,
+                'transaction_number' => 'RNT-20250317-0001',
+                'customer_id' => 12, 'vehicle_id' => 7,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-03-17 08:00:00', 'end_at' => '2025-03-20 08:00:00',
+                'handover_at' => '2025-03-17 08:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-03-20 08:00:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-03-16 14:30:00', 'updated_at' => '2025-03-20 08:10:00',
+            ],
+            [
+                'id' => 14,
+                'transaction_number' => 'RNT-20250324-0001',
+                'customer_id' => 13, 'vehicle_id' => 19,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-03-24 09:00:00', 'end_at' => '2025-03-27 09:00:00',
+                'handover_at' => '2025-03-24 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-03-27 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 450000, 'rental_days' => 3,
+                'subtotal' => 1350000, 'discount' => 50000, 'total' => 1300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Antar jemput tamu perusahaan. Diskon perusahaan Rp50.000.',
+                'created_at' => '2025-03-23 11:00:00', 'updated_at' => '2025-03-27 09:15:00',
+            ],
+            [
+                'id' => 15,
+                'transaction_number' => 'RNT-20250329-0001',
+                'customer_id' => 14, 'vehicle_id' => 13,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-03-29 10:00:00', 'end_at' => '2025-03-30 10:00:00',
+                'handover_at' => '2025-03-29 10:05:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-03-30 09:40:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-03-29 09:40:00', 'updated_at' => '2025-03-30 09:50:00',
+            ],
 
-        $tx->update(['status' => TransactionStatus::Completed]);
-    }
+            // ── APRIL 2025 ────────────────────────────────────────────────────
 
-    private function seedCompletedLateRental(): void
-    {
-        $vehicle = Vehicle::where('code', 'VT-004')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050202850002')->firstOrFail();
+            [
+                'id' => 16,
+                'transaction_number' => 'RNT-20250403-0001',
+                'customer_id' => 15, 'vehicle_id' => 1,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-04-03 08:00:00', 'end_at' => '2025-04-07 08:00:00',
+                'handover_at' => '2025-04-03 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-04-07 09:30:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 4,
+                'subtotal' => 1400000, 'discount' => 0, 'total' => 1400000,
+                'late_minutes' => 30, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => 'Liburan keluarga ke Yogyakarta via Solo.',
+                'created_at' => '2025-04-02 13:00:00', 'updated_at' => '2025-04-07 09:40:00',
+            ],
+            [
+                'id' => 17,
+                'transaction_number' => 'RNT-20250410-0001',
+                'customer_id' => 3, 'vehicle_id' => 11,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-04-10 09:00:00', 'end_at' => '2025-04-12 09:00:00',
+                'handover_at' => '2025-04-10 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-04-12 08:55:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Acara pernikahan saudara di Lumajang.',
+                'created_at' => '2025-04-09 14:00:00', 'updated_at' => '2025-04-12 09:05:00',
+            ],
+            [
+                'id' => 18,
+                'transaction_number' => 'RNT-20250416-0001',
+                'customer_id' => 16, 'vehicle_id' => 17,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-04-16 08:00:00', 'end_at' => '2025-04-19 08:00:00',
+                'handover_at' => '2025-04-16 08:30:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-04-19 08:20:00', 'returned_by' => 7,
+                'daily_rate' => 475000, 'rental_days' => 3,
+                'subtotal' => 1425000, 'discount' => 0, 'total' => 1425000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-04-15 10:00:00', 'updated_at' => '2025-04-19 08:30:00',
+            ],
+            [
+                'id' => 19,
+                'transaction_number' => 'RNT-20250425-0001',
+                'customer_id' => 17, 'vehicle_id' => 9,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-04-25 10:00:00', 'end_at' => '2025-04-26 10:00:00',
+                'handover_at' => '2025-04-25 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-04-26 10:00:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-04-25 09:30:00', 'updated_at' => '2025-04-26 10:10:00',
+            ],
 
-        $start = now()->subDays(20)->setTime(9, 0);
-        $end = now()->subDays(17)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
-        $lateFee = 200000; // 6 jam terlambat - 60 menit tenggang = 4 jam × Rp 50.000
+            // ── MEI 2025 ──────────────────────────────────────────────────────
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Completed, BookingSource::WhatsApp, 'Pemesanan via WhatsApp.', lateMinutes: 240, lateFee: $lateFee);
+            [
+                'id' => 20,
+                'transaction_number' => 'RNT-20250503-0001',
+                'customer_id' => 5, 'vehicle_id' => 4,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-05-03 08:00:00', 'end_at' => '2025-05-08 08:00:00',
+                'handover_at' => '2025-05-03 08:25:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-05-08 08:10:00', 'returned_by' => 7,
+                'daily_rate' => 575000, 'rental_days' => 5,
+                'subtotal' => 2875000, 'discount' => 0, 'total' => 2875000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Perjalanan keluarga Lebaran ke Jogja–Magelang.',
+                'created_at' => '2025-05-02 15:00:00', 'updated_at' => '2025-05-08 08:20:00',
+            ],
+            [
+                'id' => 21,
+                'transaction_number' => 'RNT-20250506-0001',
+                'customer_id' => 8, 'vehicle_id' => 1,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-05-06 09:00:00', 'end_at' => '2025-05-10 09:00:00',
+                'handover_at' => '2025-05-06 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-05-10 11:20:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 4,
+                'subtotal' => 1400000, 'discount' => 0, 'total' => 1400000,
+                'late_minutes' => 80, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Wisata Bromo dan Ijen bersama keluarga.',
+                'created_at' => '2025-05-05 13:00:00', 'updated_at' => '2025-05-10 11:30:00',
+            ],
+            [
+                'id' => 22,
+                'transaction_number' => 'RNT-20250514-0001',
+                'customer_id' => 18, 'vehicle_id' => 11,
+                'created_by' => 4, 'booking_source' => 'referral',
+                'start_at' => '2025-05-14 08:00:00', 'end_at' => '2025-05-16 08:00:00',
+                'handover_at' => '2025-05-14 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-05-16 07:50:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-05-13 16:00:00', 'updated_at' => '2025-05-16 08:00:00',
+            ],
+            [
+                'id' => 23,
+                'transaction_number' => 'RNT-20250521-0001',
+                'customer_id' => 18, 'vehicle_id' => 6,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-05-21 09:00:00', 'end_at' => '2025-05-22 09:00:00',
+                'handover_at' => '2025-05-21 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-05-22 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 300000, 'rental_days' => 1,
+                'subtotal' => 300000, 'discount' => 0, 'total' => 300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Persiapan acara pernikahan putri.',
+                'created_at' => '2025-05-20 11:00:00', 'updated_at' => '2025-05-22 09:15:00',
+            ],
+            [
+                'id' => 24,
+                'transaction_number' => 'RNT-20250528-0001',
+                'customer_id' => 19, 'vehicle_id' => 15,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-05-28 10:00:00', 'end_at' => '2025-05-29 10:00:00',
+                'handover_at' => '2025-05-28 10:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-05-29 10:30:00', 'returned_by' => 7,
+                'daily_rate' => 325000, 'rental_days' => 1,
+                'subtotal' => 325000, 'discount' => 0, 'total' => 325000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-05-28 09:30:00', 'updated_at' => '2025-05-29 10:40:00',
+            ],
 
-        $this->pay($tx, 300000, PaymentType::DownPayment, PaymentMethod::Cash, now()->subDays(22)->toDateString(), 'DP awal.');
-        $this->pay($tx, 600000, PaymentType::Installment, PaymentMethod::Transfer, now()->subDays(18)->toDateString(), 'Cicilan.');
-        $this->pay($tx, $lateFee, PaymentType::LateFee, PaymentMethod::Cash, now()->subDays(17)->toDateString(), 'Pembayaran denda keterlambatan.');
+            // ── JUNI 2025 ─────────────────────────────────────────────────────
 
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 600, FuelLevel::ThreeQuarters, null);
-        $this->returnVehicle($tx, $vehicle, $end->copy()->addHours(6), (int) $vehicle->odometer - 120, FuelLevel::Quarter, VehicleStatus::Available, null);
+            [
+                'id' => 25,
+                'transaction_number' => 'RNT-20250604-0001',
+                'customer_id' => 9, 'vehicle_id' => 22,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-06-04 08:00:00', 'end_at' => '2025-06-07 08:00:00',
+                'handover_at' => '2025-06-04 08:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-06-07 08:05:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan kerja kampus ke Malang.',
+                'created_at' => '2025-06-03 14:00:00', 'updated_at' => '2025-06-07 08:15:00',
+            ],
+            [
+                'id' => 26,
+                'transaction_number' => 'RNT-20250609-0001',
+                'customer_id' => 20, 'vehicle_id' => 21,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-06-09 09:00:00', 'end_at' => '2025-06-10 09:00:00',
+                'handover_at' => '2025-06-09 09:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-06-10 09:20:00', 'returned_by' => 7,
+                'daily_rate' => 375000, 'rental_days' => 1,
+                'subtotal' => 375000, 'discount' => 0, 'total' => 375000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Perjalanan dinas rutin ke Surabaya.',
+                'created_at' => '2025-06-09 08:30:00', 'updated_at' => '2025-06-10 09:30:00',
+            ],
+            [
+                'id' => 27,
+                'transaction_number' => 'RNT-20250616-0001',
+                'customer_id' => 7, 'vehicle_id' => 7,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-06-16 08:00:00', 'end_at' => '2025-06-19 08:00:00',
+                'handover_at' => '2025-06-16 08:25:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-06-19 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 90, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-06-15 10:00:00', 'updated_at' => '2025-06-19 10:00:00',
+            ],
+            [
+                'id' => 28,
+                'transaction_number' => 'RNT-20250623-0001',
+                'customer_id' => 21, 'vehicle_id' => 9,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-06-23 10:00:00', 'end_at' => '2025-06-24 10:00:00',
+                'handover_at' => '2025-06-23 10:05:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-06-24 10:00:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-06-23 09:30:00', 'updated_at' => '2025-06-24 10:10:00',
+            ],
+            [
+                'id' => 29,
+                'transaction_number' => 'RNT-20250628-0001',
+                'customer_id' => 22, 'vehicle_id' => 12,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-06-28 08:00:00', 'end_at' => '2025-07-05 08:00:00',
+                'handover_at' => '2025-06-28 08:30:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-07-05 08:00:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 7,
+                'subtotal' => 2975000, 'discount' => 175000, 'total' => 2800000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Sewa mingguan untuk proyek konstruksi di Bondowoso. Diskon sewa panjang Rp175.000.',
+                'created_at' => '2025-06-27 15:00:00', 'updated_at' => '2025-07-05 08:10:00',
+            ],
 
-        $tx->update(['status' => TransactionStatus::Completed]);
-    }
+            // ── JULI 2025 ─────────────────────────────────────────────────────
 
-    private function seedActiveRentals(): void
-    {
-        // Sedang berjalan, jadwal kembali besok.
-        $vehicle = Vehicle::where('code', 'VT-003')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050303790003')->firstOrFail();
+            [
+                'id' => 30,
+                'transaction_number' => 'RNT-20250707-0001',
+                'customer_id' => 23, 'vehicle_id' => 19,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-07-07 09:00:00', 'end_at' => '2025-07-09 09:00:00',
+                'handover_at' => '2025-07-07 09:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-07-09 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 450000, 'rental_days' => 2,
+                'subtotal' => 900000, 'discount' => 0, 'total' => 900000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-07-06 10:00:00', 'updated_at' => '2025-07-09 09:10:00',
+            ],
+            [
+                'id' => 31,
+                'transaction_number' => 'RNT-20250711-0001',
+                'customer_id' => 1, 'vehicle_id' => 4,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-07-11 08:00:00', 'end_at' => '2025-07-14 08:00:00',
+                'handover_at' => '2025-07-11 08:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-07-14 08:10:00', 'returned_by' => 6,
+                'daily_rate' => 575000, 'rental_days' => 3,
+                'subtotal' => 1725000, 'discount' => 0, 'total' => 1725000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan dinas ke Surabaya dan Sidoarjo.',
+                'created_at' => '2025-07-10 14:00:00', 'updated_at' => '2025-07-14 08:20:00',
+            ],
+            [
+                'id' => 32,
+                'transaction_number' => 'RNT-20250717-0001',
+                'customer_id' => 24, 'vehicle_id' => 21,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-07-17 09:00:00', 'end_at' => '2025-07-19 09:00:00',
+                'handover_at' => '2025-07-17 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-07-19 10:30:00', 'returned_by' => 7,
+                'daily_rate' => 375000, 'rental_days' => 2,
+                'subtotal' => 750000, 'discount' => 0, 'total' => 750000,
+                'late_minutes' => 30, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => 'Repeat order untuk operasional toko.',
+                'created_at' => '2025-07-16 11:00:00', 'updated_at' => '2025-07-19 10:40:00',
+            ],
+            [
+                'id' => 33,
+                'transaction_number' => 'RNT-20250724-0001',
+                'customer_id' => 25, 'vehicle_id' => 13,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-07-24 10:00:00', 'end_at' => '2025-07-25 10:00:00',
+                'handover_at' => '2025-07-24 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-07-25 09:55:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-07-24 09:30:00', 'updated_at' => '2025-07-25 10:05:00',
+            ],
+            [
+                'id' => 34,
+                'transaction_number' => 'RNT-20250730-0001',
+                'customer_id' => 26, 'vehicle_id' => 12,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-07-30 08:00:00', 'end_at' => '2025-08-06 08:00:00',
+                'handover_at' => '2025-07-30 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-08-06 08:00:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 7,
+                'subtotal' => 2975000, 'discount' => 175000, 'total' => 2800000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Sewa mingguan operasional ekspedisi Jember–Surabaya. Diskon sewa panjang.',
+                'created_at' => '2025-07-29 16:00:00', 'updated_at' => '2025-08-06 08:10:00',
+            ],
 
-        $start = now()->subDays(2)->setTime(9, 0);
-        $end = now()->addDay()->setTime(17, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            // ── AGUSTUS 2025 ──────────────────────────────────────────────────
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Rented, BookingSource::WalkIn, 'Sewa untuk perjalanan dinas.');
+            [
+                'id' => 35,
+                'transaction_number' => 'RNT-20250804-0001',
+                'customer_id' => 27, 'vehicle_id' => 7,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-08-04 10:00:00', 'end_at' => '2025-08-05 10:00:00',
+                'handover_at' => '2025-08-04 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-08-05 10:00:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 1,
+                'subtotal' => 425000, 'discount' => 0, 'total' => 425000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-08-04 09:30:00', 'updated_at' => '2025-08-05 10:10:00',
+            ],
+            [
+                'id' => 36,
+                'transaction_number' => 'RNT-20250808-0001',
+                'customer_id' => 28, 'vehicle_id' => 11,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-08-08 09:00:00', 'end_at' => '2025-08-11 09:00:00',
+                'handover_at' => '2025-08-08 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-08-11 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 3,
+                'subtotal' => 1050000, 'discount' => 0, 'total' => 1050000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Acara keluarga besar di Bondowoso.',
+                'created_at' => '2025-08-07 13:00:00', 'updated_at' => '2025-08-11 09:10:00',
+            ],
+            [
+                'id' => 37,
+                'transaction_number' => 'RNT-20250815-0001',
+                'customer_id' => 8, 'vehicle_id' => 4,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-08-15 08:00:00', 'end_at' => '2025-08-18 08:00:00',
+                'handover_at' => '2025-08-15 08:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-08-18 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 575000, 'rental_days' => 3,
+                'subtotal' => 1725000, 'discount' => 0, 'total' => 1725000,
+                'late_minutes' => 90, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Wisata Ijen bersama komunitas wisata.',
+                'created_at' => '2025-08-14 15:00:00', 'updated_at' => '2025-08-18 10:00:00',
+            ],
+            [
+                'id' => 38,
+                'transaction_number' => 'RNT-20250820-0001',
+                'customer_id' => 29, 'vehicle_id' => 17,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2025-08-20 10:00:00', 'end_at' => '2025-08-22 10:00:00',
+                'handover_at' => '2025-08-20 10:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-08-22 10:05:00', 'returned_by' => 7,
+                'daily_rate' => 475000, 'rental_days' => 2,
+                'subtotal' => 950000, 'discount' => 0, 'total' => 950000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-08-20 09:30:00', 'updated_at' => '2025-08-22 10:15:00',
+            ],
+            [
+                'id' => 39,
+                'transaction_number' => 'RNT-20250826-0001',
+                'customer_id' => 30, 'vehicle_id' => 22,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-08-26 08:00:00', 'end_at' => '2025-08-28 08:00:00',
+                'handover_at' => '2025-08-26 08:30:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-08-28 08:15:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-08-25 14:00:00', 'updated_at' => '2025-08-28 08:25:00',
+            ],
 
-        $this->pay($tx, 500000, PaymentType::DownPayment, PaymentMethod::Cash, now()->subDays(3)->toDateString(), 'DP.');
-        $this->pay($tx, 300000, PaymentType::Installment, PaymentMethod::QRIS, now()->toDateString(), 'Cicilan pelanggan.');
+            // ── SEPTEMBER 2025 ────────────────────────────────────────────────
 
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 410, FuelLevel::Full, 'Tidak ada kerusakan baru.');
-        $this->returnVehicle($tx, $vehicle, null, null, null, null, null);
-        $tx->update(['status' => TransactionStatus::Rented]);
+            [
+                'id' => 40,
+                'transaction_number' => 'RNT-20250903-0001',
+                'customer_id' => 31, 'vehicle_id' => 6,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2025-09-03 10:00:00', 'end_at' => '2025-09-04 10:00:00',
+                'handover_at' => '2025-09-03 10:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-09-04 10:00:00', 'returned_by' => 7,
+                'daily_rate' => 300000, 'rental_days' => 1,
+                'subtotal' => 300000, 'discount' => 0, 'total' => 300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-09-03 09:30:00', 'updated_at' => '2025-09-04 10:10:00',
+            ],
+            [
+                'id' => 41,
+                'transaction_number' => 'RNT-20250909-0001',
+                'customer_id' => 24, 'vehicle_id' => 19,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-09-09 09:00:00', 'end_at' => '2025-09-12 09:00:00',
+                'handover_at' => '2025-09-09 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-09-12 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 450000, 'rental_days' => 3,
+                'subtotal' => 1350000, 'discount' => 0, 'total' => 1350000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Operasional toko cabang baru di Lumajang.',
+                'created_at' => '2025-09-08 13:00:00', 'updated_at' => '2025-09-12 09:10:00',
+            ],
+            [
+                'id' => 42,
+                'transaction_number' => 'RNT-20250915-0001',
+                'customer_id' => 32, 'vehicle_id' => 1,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-09-15 08:00:00', 'end_at' => '2025-09-18 08:00:00',
+                'handover_at' => '2025-09-15 08:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-09-18 08:05:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 3,
+                'subtotal' => 1050000, 'discount' => 0, 'total' => 1050000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Paket 3 hari biasa.',
+                'created_at' => '2025-09-14 15:00:00', 'updated_at' => '2025-09-18 08:15:00',
+            ],
+            [
+                'id' => 43,
+                'transaction_number' => 'RNT-20250921-0001',
+                'customer_id' => 33, 'vehicle_id' => 3,
+                'created_by' => 3, 'booking_source' => 'referral',
+                'start_at' => '2025-09-21 09:00:00', 'end_at' => '2025-09-23 09:00:00',
+                'handover_at' => '2025-09-21 09:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-09-23 11:25:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 85, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-09-20 10:00:00', 'updated_at' => '2025-09-23 10:55:00',
+            ],
+            [
+                'id' => 44,
+                'transaction_number' => 'RNT-20250927-0001',
+                'customer_id' => 20, 'vehicle_id' => 5,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-09-27 08:00:00', 'end_at' => '2025-09-29 08:00:00',
+                'handover_at' => null, 'handed_over_by' => null,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 650000, 'rental_days' => 2,
+                'subtotal' => 1300000, 'discount' => 0, 'total' => 1300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'cancelled',
+                'notes' => 'Dibatalkan oleh pelanggan — jadwal perjalanan berubah.',
+                'created_at' => '2025-09-26 11:00:00', 'updated_at' => '2025-09-27 07:30:00',
+            ],
 
-        // Terlambat: lewat tenggat kemarin, belum dikembalikan.
-        $vehicle = Vehicle::where('code', 'VT-005')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050404900004')->firstOrFail();
+            // ── OKTOBER 2025 ──────────────────────────────────────────────────
 
-        $start = now()->subDays(5)->setTime(9, 0);
-        $end = now()->subDay()->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            [
+                'id' => 45,
+                'transaction_number' => 'RNT-20251003-0001',
+                'customer_id' => 34, 'vehicle_id' => 7,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-10-03 09:00:00', 'end_at' => '2025-10-05 09:00:00',
+                'handover_at' => '2025-10-03 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-10-05 09:10:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-10-02 14:00:00', 'updated_at' => '2025-10-05 09:20:00',
+            ],
+            [
+                'id' => 46,
+                'transaction_number' => 'RNT-20251009-0001',
+                'customer_id' => 26, 'vehicle_id' => 12,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2025-10-09 08:00:00', 'end_at' => '2025-10-16 08:00:00',
+                'handover_at' => '2025-10-09 08:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-10-16 08:10:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 7,
+                'subtotal' => 2975000, 'discount' => 175000, 'total' => 2800000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Sewa mingguan operasional ekspedisi.',
+                'created_at' => '2025-10-08 15:00:00', 'updated_at' => '2025-10-16 08:20:00',
+            ],
+            [
+                'id' => 47,
+                'transaction_number' => 'RNT-20251016-0001',
+                'customer_id' => 35, 'vehicle_id' => 5,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-10-16 09:00:00', 'end_at' => '2025-10-23 09:00:00',
+                'handover_at' => '2025-10-16 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-10-23 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 650000, 'rental_days' => 7,
+                'subtotal' => 4550000, 'discount' => 350000, 'total' => 4200000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan keluarga ke Yogyakarta. Diskon sewa panjang Rp350.000.',
+                'created_at' => '2025-10-15 11:00:00', 'updated_at' => '2025-10-23 09:10:00',
+            ],
+            [
+                'id' => 48,
+                'transaction_number' => 'RNT-20251024-0001',
+                'customer_id' => 15, 'vehicle_id' => 17,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2025-10-24 10:00:00', 'end_at' => '2025-10-26 10:00:00',
+                'handover_at' => '2025-10-24 10:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-10-26 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 475000, 'rental_days' => 2,
+                'subtotal' => 950000, 'discount' => 0, 'total' => 950000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Keluarga besar dari Magelang berkunjung.',
+                'created_at' => '2025-10-24 09:00:00', 'updated_at' => '2025-10-26 10:40:00',
+            ],
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Rented, BookingSource::Phone, 'Pelanggan meminta perpanjangan, menunggu konfirmasi.');
+            // ── NOVEMBER 2025 ─────────────────────────────────────────────────
 
-        $this->pay($tx, 400000, PaymentType::DownPayment, PaymentMethod::Transfer, now()->subDays(6)->toDateString(), 'DP.');
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 720, FuelLevel::ThreeQuarters, 'Spion kanan goyang (kerusakan lama).');
-        $tx->update(['status' => TransactionStatus::Rented]);
-    }
+            [
+                'id' => 49,
+                'transaction_number' => 'RNT-20251104-0001',
+                'customer_id' => 36, 'vehicle_id' => 9,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2025-11-04 10:00:00', 'end_at' => '2025-11-05 10:00:00',
+                'handover_at' => '2025-11-04 10:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-11-05 10:00:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-11-04 09:30:00', 'updated_at' => '2025-11-05 10:10:00',
+            ],
+            [
+                'id' => 50,
+                'transaction_number' => 'RNT-20251110-0001',
+                'customer_id' => 13, 'vehicle_id' => 7,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-11-10 09:00:00', 'end_at' => '2025-11-12 09:00:00',
+                'handover_at' => '2025-11-10 09:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-11-12 09:10:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Antar jemput keluarga dari Bandara Juanda.',
+                'created_at' => '2025-11-09 14:00:00', 'updated_at' => '2025-11-12 09:20:00',
+            ],
+            [
+                'id' => 51,
+                'transaction_number' => 'RNT-20251118-0001',
+                'customer_id' => 37, 'vehicle_id' => 22,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2025-11-18 08:00:00', 'end_at' => '2025-11-21 08:00:00',
+                'handover_at' => '2025-11-18 08:25:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-11-21 10:15:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 75, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-11-17 15:00:00', 'updated_at' => '2025-11-21 09:45:00',
+            ],
+            [
+                'id' => 52,
+                'transaction_number' => 'RNT-20251125-0001',
+                'customer_id' => 38, 'vehicle_id' => 1,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-11-25 09:00:00', 'end_at' => '2025-11-26 09:00:00',
+                'handover_at' => '2025-11-25 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-11-26 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 1,
+                'subtotal' => 350000, 'discount' => 0, 'total' => 350000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Keperluan wisuda anak.',
+                'created_at' => '2025-11-25 08:30:00', 'updated_at' => '2025-11-26 09:10:00',
+            ],
 
-    private function seedUpcomingBookings(): void
-    {
-        // Booking disetujui, kendaraan dibooking.
-        $vehicle = Vehicle::where('code', 'VT-006')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050505750005')->firstOrFail();
+            // ── DESEMBER 2025 ─────────────────────────────────────────────────
 
-        $start = now()->addDays(2)->setTime(9, 0);
-        $end = now()->addDays(5)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            [
+                'id' => 53,
+                'transaction_number' => 'RNT-20251204-0001',
+                'customer_id' => 32, 'vehicle_id' => 3,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2025-12-04 08:00:00', 'end_at' => '2025-12-07 08:00:00',
+                'handover_at' => '2025-12-04 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-12-07 08:05:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-12-03 14:00:00', 'updated_at' => '2025-12-07 08:15:00',
+            ],
+            [
+                'id' => 54,
+                'transaction_number' => 'RNT-20251210-0001',
+                'customer_id' => 39, 'vehicle_id' => 19,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2025-12-10 09:00:00', 'end_at' => '2025-12-12 09:00:00',
+                'handover_at' => '2025-12-10 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-12-12 09:20:00', 'returned_by' => 6,
+                'daily_rate' => 450000, 'rental_days' => 2,
+                'subtotal' => 900000, 'discount' => 0, 'total' => 900000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2025-12-09 10:00:00', 'updated_at' => '2025-12-12 09:30:00',
+            ],
+            [
+                'id' => 55,
+                'transaction_number' => 'RNT-20251218-0001',
+                'customer_id' => 40, 'vehicle_id' => 5,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2025-12-18 08:00:00', 'end_at' => '2025-12-25 08:00:00',
+                'handover_at' => '2025-12-18 08:30:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2025-12-25 10:20:00', 'returned_by' => 7,
+                'daily_rate' => 650000, 'rental_days' => 7,
+                'subtotal' => 4550000, 'discount' => 350000, 'total' => 4200000,
+                'late_minutes' => 80, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Liburan akhir tahun keluarga ke Lombok. Diskon sewa panjang.',
+                'created_at' => '2025-12-17 14:00:00', 'updated_at' => '2025-12-25 09:50:00',
+            ],
+            [
+                'id' => 56,
+                'transaction_number' => 'RNT-20251224-0001',
+                'customer_id' => 1, 'vehicle_id' => 21,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2025-12-24 09:00:00', 'end_at' => '2025-12-26 09:00:00',
+                'handover_at' => '2025-12-24 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2025-12-26 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 375000, 'rental_days' => 2,
+                'subtotal' => 750000, 'discount' => 0, 'total' => 750000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan akhir tahun ke keluarga.',
+                'created_at' => '2025-12-23 16:00:00', 'updated_at' => '2025-12-26 09:15:00',
+            ],
+            [
+                'id' => 57,
+                'transaction_number' => 'RNT-20251228-0001',
+                'customer_id' => 41, 'vehicle_id' => 1,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2025-12-28 10:00:00', 'end_at' => '2026-01-02 10:00:00',
+                'handover_at' => '2025-12-28 10:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-01-02 10:20:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 5,
+                'subtotal' => 1750000, 'discount' => 0, 'total' => 1750000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Mudik ke kampung halaman.',
+                'created_at' => '2025-12-27 14:00:00', 'updated_at' => '2026-01-02 10:30:00',
+            ],
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Booked, BookingSource::WhatsApp, 'Konfirmasi booking via WhatsApp.');
-        $this->pay($tx, 400000, PaymentType::DownPayment, PaymentMethod::QRIS, now()->toDateString(), 'DP 30%.');
-        $vehicle->update(['status' => VehicleStatus::Booked]);
+            // ── JANUARI 2026 ──────────────────────────────────────────────────
 
-        // Siap diserahkan besok pagi, sudah diperiksa staf.
-        $vehicle = Vehicle::where('code', 'VT-007')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050606950006')->firstOrFail();
+            [
+                'id' => 58,
+                'transaction_number' => 'RNT-20260108-0001',
+                'customer_id' => 42, 'vehicle_id' => 13,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2026-01-08 09:00:00', 'end_at' => '2026-01-10 09:00:00',
+                'handover_at' => '2026-01-08 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-01-10 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 2,
+                'subtotal' => 550000, 'discount' => 0, 'total' => 550000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-01-07 15:00:00', 'updated_at' => '2026-01-10 09:15:00',
+            ],
+            [
+                'id' => 59,
+                'transaction_number' => 'RNT-20260115-0001',
+                'customer_id' => 43, 'vehicle_id' => 11,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2026-01-15 08:00:00', 'end_at' => '2026-01-17 08:00:00',
+                'handover_at' => '2026-01-15 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-01-17 10:15:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 75, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-01-14 14:00:00', 'updated_at' => '2026-01-17 10:25:00',
+            ],
+            [
+                'id' => 60,
+                'transaction_number' => 'RNT-20260122-0001',
+                'customer_id' => 44, 'vehicle_id' => 4,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-01-22 09:00:00', 'end_at' => '2026-01-25 09:00:00',
+                'handover_at' => '2026-01-22 09:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-01-25 09:10:00', 'returned_by' => 6,
+                'daily_rate' => 575000, 'rental_days' => 3,
+                'subtotal' => 1725000, 'discount' => 0, 'total' => 1725000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Pernikahan saudara di Situbondo.',
+                'created_at' => '2026-01-21 11:00:00', 'updated_at' => '2026-01-25 09:20:00',
+            ],
+            [
+                'id' => 61,
+                'transaction_number' => 'RNT-20260128-0001',
+                'customer_id' => 9, 'vehicle_id' => 22,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2026-01-28 08:00:00', 'end_at' => '2026-01-31 08:00:00',
+                'handover_at' => '2026-01-28 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-01-31 08:05:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan kerja ke Surabaya.',
+                'created_at' => '2026-01-27 14:00:00', 'updated_at' => '2026-01-31 08:15:00',
+            ],
 
-        $start = now()->addDay()->setTime(9, 0);
-        $end = now()->addDays(4)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            // ── FEBRUARI 2026 ─────────────────────────────────────────────────
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::ReadyForHandover, BookingSource::Referral, 'Pelanggan direkomendasikan pelanggan lama.');
-        $this->pay($tx, (int) round($subtotal / 2), PaymentType::DownPayment, PaymentMethod::Cash, now()->subDay()->toDateString(), 'DP 50%.');
-        $this->pay($tx, $subtotal - (int) round($subtotal / 2), PaymentType::Final, PaymentMethod::Transfer, now()->toDateString(), 'Pelunasan sebelum serah terima.');
-        $vehicle->update(['status' => VehicleStatus::Ready]);
-    }
+            [
+                'id' => 62,
+                'transaction_number' => 'RNT-20260204-0001',
+                'customer_id' => 45, 'vehicle_id' => 17,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-02-04 09:00:00', 'end_at' => '2026-02-06 09:00:00',
+                'handover_at' => '2026-02-04 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-02-06 08:55:00', 'returned_by' => 6,
+                'daily_rate' => 475000, 'rental_days' => 2,
+                'subtotal' => 950000, 'discount' => 0, 'total' => 950000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-02-03 15:00:00', 'updated_at' => '2026-02-06 09:05:00',
+            ],
+            [
+                'id' => 63,
+                'transaction_number' => 'RNT-20260211-0001',
+                'customer_id' => 46, 'vehicle_id' => 6,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-02-11 10:00:00', 'end_at' => '2026-02-12 10:00:00',
+                'handover_at' => '2026-02-11 10:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-02-12 10:05:00', 'returned_by' => 7,
+                'daily_rate' => 300000, 'rental_days' => 1,
+                'subtotal' => 300000, 'discount' => 0, 'total' => 300000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-02-11 09:30:00', 'updated_at' => '2026-02-12 10:15:00',
+            ],
+            [
+                'id' => 64,
+                'transaction_number' => 'RNT-20260218-0001',
+                'customer_id' => 47, 'vehicle_id' => 5,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2026-02-18 08:00:00', 'end_at' => '2026-02-21 08:00:00',
+                'handover_at' => '2026-02-18 08:25:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-02-21 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 650000, 'rental_days' => 3,
+                'subtotal' => 1950000, 'discount' => 0, 'total' => 1950000,
+                'late_minutes' => 90, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Kunjungan proyek ke Malang dan Batu.',
+                'created_at' => '2026-02-17 10:00:00', 'updated_at' => '2026-02-21 10:00:00',
+            ],
+            [
+                'id' => 65,
+                'transaction_number' => 'RNT-20260225-0001',
+                'customer_id' => 3, 'vehicle_id' => 13,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-02-25 10:00:00', 'end_at' => '2026-02-26 10:00:00',
+                'handover_at' => '2026-02-25 10:05:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-02-26 09:50:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Acara keluarga di Lumajang.',
+                'created_at' => '2026-02-25 09:30:00', 'updated_at' => '2026-02-26 10:00:00',
+            ],
 
-    private function seedDraftAndCancelled(): void
-    {
-        // Menunggu pembayaran DP.
-        $vehicle = Vehicle::where('code', 'VT-008')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050707700007')->firstOrFail();
+            // ── MARET 2026 ────────────────────────────────────────────────────
 
-        $start = now()->addDays(6)->setTime(9, 0);
-        $end = now()->addDays(8)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            [
+                'id' => 66,
+                'transaction_number' => 'RNT-20260305-0001',
+                'customer_id' => 48, 'vehicle_id' => 1,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-03-05 09:00:00', 'end_at' => '2026-03-07 09:00:00',
+                'handover_at' => '2026-03-05 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-03-07 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-03-04 13:00:00', 'updated_at' => '2026-03-07 09:10:00',
+            ],
+            [
+                'id' => 67,
+                'transaction_number' => 'RNT-20260311-0001',
+                'customer_id' => 49, 'vehicle_id' => 20,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-03-11 09:00:00', 'end_at' => '2026-03-14 09:00:00',
+                'handover_at' => '2026-03-11 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-03-14 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 500000, 'rental_days' => 3,
+                'subtotal' => 1500000, 'discount' => 0, 'total' => 1500000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Perjalanan wisata Bromo bersama komunitas.',
+                'created_at' => '2026-03-10 14:00:00', 'updated_at' => '2026-03-14 09:10:00',
+            ],
+            [
+                'id' => 68,
+                'transaction_number' => 'RNT-20260318-0001',
+                'customer_id' => 50, 'vehicle_id' => 15,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-03-18 10:00:00', 'end_at' => '2026-03-19 10:00:00',
+                'handover_at' => '2026-03-18 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-03-19 10:05:00', 'returned_by' => 6,
+                'daily_rate' => 325000, 'rental_days' => 1,
+                'subtotal' => 325000, 'discount' => 0, 'total' => 325000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-03-18 09:30:00', 'updated_at' => '2026-03-19 10:15:00',
+            ],
+            [
+                'id' => 69,
+                'transaction_number' => 'RNT-20260325-0001',
+                'customer_id' => 24, 'vehicle_id' => 21,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2026-03-25 08:00:00', 'end_at' => '2026-03-27 08:00:00',
+                'handover_at' => '2026-03-25 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-03-27 10:25:00', 'returned_by' => 7,
+                'daily_rate' => 375000, 'rental_days' => 2,
+                'subtotal' => 750000, 'discount' => 0, 'total' => 750000,
+                'late_minutes' => 85, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Operasional toko.',
+                'created_at' => '2026-03-24 15:00:00', 'updated_at' => '2026-03-27 09:55:00',
+            ],
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::AwaitingPayment, BookingSource::WalkIn, 'Menunggu DP.');
-        $this->pay($tx, 100000, PaymentType::DownPayment, PaymentMethod::Cash, now()->toDateString(), 'DP sebagian.');
+            // ── APRIL 2026 ────────────────────────────────────────────────────
 
-        // Draft.
-        $vehicle = Vehicle::where('code', 'VT-009')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050808880008')->firstOrFail();
+            [
+                'id' => 70,
+                'transaction_number' => 'RNT-20260403-0001',
+                'customer_id' => 51, 'vehicle_id' => 7,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-04-03 09:00:00', 'end_at' => '2026-04-05 09:00:00',
+                'handover_at' => '2026-04-03 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-04-05 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-04-02 10:00:00', 'updated_at' => '2026-04-05 09:15:00',
+            ],
+            [
+                'id' => 71,
+                'transaction_number' => 'RNT-20260410-0001',
+                'customer_id' => 52, 'vehicle_id' => 4,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2026-04-10 08:00:00', 'end_at' => '2026-04-12 08:00:00',
+                'handover_at' => '2026-04-10 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-04-12 08:10:00', 'returned_by' => 7,
+                'daily_rate' => 575000, 'rental_days' => 2,
+                'subtotal' => 1150000, 'discount' => 0, 'total' => 1150000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Kunjungan vendor di Surabaya.',
+                'created_at' => '2026-04-09 14:00:00', 'updated_at' => '2026-04-12 08:20:00',
+            ],
+            [
+                'id' => 72,
+                'transaction_number' => 'RNT-20260417-0001',
+                'customer_id' => 53, 'vehicle_id' => 3,
+                'created_by' => 5, 'booking_source' => 'referral',
+                'start_at' => '2026-04-17 09:00:00', 'end_at' => '2026-04-19 09:00:00',
+                'handover_at' => '2026-04-17 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-04-19 10:30:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 30, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-04-16 10:00:00', 'updated_at' => '2026-04-19 10:40:00',
+            ],
+            [
+                'id' => 73,
+                'transaction_number' => 'RNT-20260424-0001',
+                'customer_id' => 54, 'vehicle_id' => 11,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2026-04-24 10:00:00', 'end_at' => '2026-04-25 10:00:00',
+                'handover_at' => '2026-04-24 10:05:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-04-25 09:50:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 1,
+                'subtotal' => 350000, 'discount' => 0, 'total' => 350000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-04-24 09:30:00', 'updated_at' => '2026-04-25 10:00:00',
+            ],
 
-        $start = now()->addDays(9)->setTime(9, 0);
-        $end = now()->addDays(11)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            // ── MEI 2026 ──────────────────────────────────────────────────────
 
-        $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Draft, BookingSource::Phone, 'Data belum lengkap, disimpan sebagai draft.');
+            [
+                'id' => 74,
+                'transaction_number' => 'RNT-20260505-0001',
+                'customer_id' => 55, 'vehicle_id' => 1,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-05-05 09:00:00', 'end_at' => '2026-05-07 09:00:00',
+                'handover_at' => '2026-05-05 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-05-07 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Haul keluarga besar di Lumajang.',
+                'created_at' => '2026-05-04 13:00:00', 'updated_at' => '2026-05-07 09:10:00',
+            ],
+            [
+                'id' => 75,
+                'transaction_number' => 'RNT-20260512-0001',
+                'customer_id' => 8, 'vehicle_id' => 5,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-05-12 08:00:00', 'end_at' => '2026-05-16 08:00:00',
+                'handover_at' => '2026-05-12 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-05-16 09:30:00', 'returned_by' => 7,
+                'daily_rate' => 650000, 'rental_days' => 4,
+                'subtotal' => 2600000, 'discount' => 100000, 'total' => 2500000,
+                'late_minutes' => 30, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => 'Wisata Bromo, Ijen, dan pantai bersama keluarga. Diskon repeat pelanggan.',
+                'created_at' => '2026-05-11 14:00:00', 'updated_at' => '2026-05-16 09:40:00',
+            ],
+            [
+                'id' => 76,
+                'transaction_number' => 'RNT-20260519-0001',
+                'customer_id' => 56, 'vehicle_id' => 13,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2026-05-19 10:00:00', 'end_at' => '2026-05-20 10:00:00',
+                'handover_at' => '2026-05-19 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-05-20 10:05:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-05-19 09:30:00', 'updated_at' => '2026-05-20 10:15:00',
+            ],
+            [
+                'id' => 77,
+                'transaction_number' => 'RNT-20260526-0001',
+                'customer_id' => 57, 'vehicle_id' => 6,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-05-26 09:00:00', 'end_at' => '2026-05-28 09:00:00',
+                'handover_at' => '2026-05-26 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-05-28 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 300000, 'rental_days' => 2,
+                'subtotal' => 600000, 'discount' => 0, 'total' => 600000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Acara keluarga di Jember.',
+                'created_at' => '2026-05-25 14:00:00', 'updated_at' => '2026-05-28 09:10:00',
+            ],
 
-        // Dibatalkan.
-        $vehicle = Vehicle::where('code', 'VT-010')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050101800001')->firstOrFail();
+            // ── JUNI 2026 ─────────────────────────────────────────────────────
 
-        $start = now()->subDays(6)->setTime(9, 0);
-        $end = now()->subDays(4)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
+            [
+                'id' => 78,
+                'transaction_number' => 'RNT-20260604-0001',
+                'customer_id' => 58, 'vehicle_id' => 17,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2026-06-04 09:00:00', 'end_at' => '2026-06-06 09:00:00',
+                'handover_at' => '2026-06-04 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-06-06 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 475000, 'rental_days' => 2,
+                'subtotal' => 950000, 'discount' => 0, 'total' => 950000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-06-03 13:00:00', 'updated_at' => '2026-06-06 09:10:00',
+            ],
+            [
+                'id' => 79,
+                'transaction_number' => 'RNT-20260611-0001',
+                'customer_id' => 18, 'vehicle_id' => 11,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-06-11 08:00:00', 'end_at' => '2026-06-14 08:00:00',
+                'handover_at' => '2026-06-11 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-06-14 08:10:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 3,
+                'subtotal' => 1050000, 'discount' => 0, 'total' => 1050000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Acara pernikahan putri kedua.',
+                'created_at' => '2026-06-10 15:00:00', 'updated_at' => '2026-06-14 08:20:00',
+            ],
+            [
+                'id' => 80,
+                'transaction_number' => 'RNT-20260618-0001',
+                'customer_id' => 59, 'vehicle_id' => 3,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-06-18 09:00:00', 'end_at' => '2026-06-20 09:00:00',
+                'handover_at' => '2026-06-18 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-06-20 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-06-17 10:00:00', 'updated_at' => '2026-06-20 09:15:00',
+            ],
+            [
+                'id' => 81,
+                'transaction_number' => 'RNT-20260625-0001',
+                'customer_id' => 26, 'vehicle_id' => 12,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2026-06-25 08:00:00', 'end_at' => '2026-07-02 08:00:00',
+                'handover_at' => '2026-06-25 08:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-07-02 08:05:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 7,
+                'subtotal' => 2975000, 'discount' => 175000, 'total' => 2800000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Sewa mingguan operasional ekspedisi.',
+                'created_at' => '2026-06-24 15:00:00', 'updated_at' => '2026-07-02 08:15:00',
+            ],
 
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Cancelled, BookingSource::WhatsApp, 'Dibatalkan pelanggan.');
-        $tx->logs()->create([
-            'user_id' => $this->admin->id,
-            'action' => 'status_change',
-            'from_status' => TransactionStatus::AwaitingPayment->value,
-            'to_status' => TransactionStatus::Cancelled->value,
-            'description' => "Transaksi dibatalkan oleh {$this->admin->name}. Alasan: pelanggan berubah rencana.",
+            // ── JULI 2026 ─────────────────────────────────────────────────────
+
+            [
+                'id' => 82,
+                'transaction_number' => 'RNT-20260707-0001',
+                'customer_id' => 60, 'vehicle_id' => 20,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-07-07 09:00:00', 'end_at' => '2026-07-10 09:00:00',
+                'handover_at' => '2026-07-07 09:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-07-10 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 500000, 'rental_days' => 3,
+                'subtotal' => 1500000, 'discount' => 0, 'total' => 1500000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Wisata komunitas motoran ke Pantai Watu Ulo.',
+                'created_at' => '2026-07-06 10:00:00', 'updated_at' => '2026-07-10 09:15:00',
+            ],
+            [
+                'id' => 83,
+                'transaction_number' => 'RNT-20260714-0001',
+                'customer_id' => 61, 'vehicle_id' => 24,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2026-07-14 08:00:00', 'end_at' => '2026-07-17 08:00:00',
+                'handover_at' => '2026-07-14 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-07-17 08:05:00', 'returned_by' => 7,
+                'daily_rate' => 700000, 'rental_days' => 3,
+                'subtotal' => 2100000, 'discount' => 0, 'total' => 2100000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Perjalanan bisnis VIP ke Surabaya.',
+                'created_at' => '2026-07-13 14:00:00', 'updated_at' => '2026-07-17 08:15:00',
+            ],
+            [
+                'id' => 84,
+                'transaction_number' => 'RNT-20260721-0001',
+                'customer_id' => 47, 'vehicle_id' => 22,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-07-21 09:00:00', 'end_at' => '2026-07-24 09:00:00',
+                'handover_at' => '2026-07-21 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-07-24 10:25:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 25, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => 'Kunjungan proyek Malang.',
+                'created_at' => '2026-07-20 10:00:00', 'updated_at' => '2026-07-24 10:35:00',
+            ],
+            [
+                'id' => 85,
+                'transaction_number' => 'RNT-20260728-0001',
+                'customer_id' => 62, 'vehicle_id' => 9,
+                'created_by' => 3, 'booking_source' => 'walk_in',
+                'start_at' => '2026-07-28 10:00:00', 'end_at' => '2026-07-29 10:00:00',
+                'handover_at' => '2026-07-28 10:10:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-07-29 10:00:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-07-28 09:30:00', 'updated_at' => '2026-07-29 10:10:00',
+            ],
+
+            // ── AGUSTUS 2026 ──────────────────────────────────────────────────
+
+            [
+                'id' => 86,
+                'transaction_number' => 'RNT-20260804-0001',
+                'customer_id' => 63, 'vehicle_id' => 6,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-08-04 09:00:00', 'end_at' => '2026-08-06 09:00:00',
+                'handover_at' => '2026-08-04 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-08-06 09:00:00', 'returned_by' => 6,
+                'daily_rate' => 300000, 'rental_days' => 2,
+                'subtotal' => 600000, 'discount' => 0, 'total' => 600000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-08-03 13:00:00', 'updated_at' => '2026-08-06 09:10:00',
+            ],
+            [
+                'id' => 87,
+                'transaction_number' => 'RNT-20260811-0001',
+                'customer_id' => 64, 'vehicle_id' => 1,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-08-11 09:00:00', 'end_at' => '2026-08-13 09:00:00',
+                'handover_at' => '2026-08-11 09:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-08-13 10:35:00', 'returned_by' => 7,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 35, 'late_fee' => 50000,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-08-10 15:00:00', 'updated_at' => '2026-08-13 10:45:00',
+            ],
+            [
+                'id' => 88,
+                'transaction_number' => 'RNT-20260818-0001',
+                'customer_id' => 65, 'vehicle_id' => 3,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2026-08-18 08:00:00', 'end_at' => '2026-08-21 08:00:00',
+                'handover_at' => '2026-08-18 08:25:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-08-21 08:10:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-08-17 14:00:00', 'updated_at' => '2026-08-21 08:20:00',
+            ],
+            [
+                'id' => 89,
+                'transaction_number' => 'RNT-20260825-0001',
+                'customer_id' => 32, 'vehicle_id' => 7,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-08-25 09:00:00', 'end_at' => '2026-08-28 09:00:00',
+                'handover_at' => '2026-08-25 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-08-28 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Paket sewa reguler.',
+                'created_at' => '2026-08-24 11:00:00', 'updated_at' => '2026-08-28 09:10:00',
+            ],
+
+            // ── SEPTEMBER 2026 — transaksi selesai ───────────────────────────
+
+            [
+                'id' => 90,
+                'transaction_number' => 'RNT-20260902-0001',
+                'customer_id' => 66, 'vehicle_id' => 1,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-02 09:00:00', 'end_at' => '2026-09-04 09:00:00',
+                'handover_at' => '2026-09-02 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-09-04 09:05:00', 'returned_by' => 6,
+                'daily_rate' => 350000, 'rental_days' => 2,
+                'subtotal' => 700000, 'discount' => 0, 'total' => 700000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => 'Keperluan wisuda.',
+                'created_at' => '2026-09-01 14:00:00', 'updated_at' => '2026-09-04 09:15:00',
+            ],
+            [
+                'id' => 91,
+                'transaction_number' => 'RNT-20260908-0001',
+                'customer_id' => 41, 'vehicle_id' => 22,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2026-09-08 08:00:00', 'end_at' => '2026-09-11 08:00:00',
+                'handover_at' => '2026-09-08 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-09-11 10:30:00', 'returned_by' => 7,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 90, 'late_fee' => 100000,
+                'status' => 'completed',
+                'notes' => 'Mudik ke kampung halaman.',
+                'created_at' => '2026-09-07 15:00:00', 'updated_at' => '2026-09-11 10:00:00',
+            ],
+            [
+                'id' => 92,
+                'transaction_number' => 'RNT-20260912-0001',
+                'customer_id' => 67, 'vehicle_id' => 13,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-09-12 10:00:00', 'end_at' => '2026-09-13 10:00:00',
+                'handover_at' => '2026-09-12 10:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-09-13 10:05:00', 'returned_by' => 6,
+                'daily_rate' => 275000, 'rental_days' => 1,
+                'subtotal' => 275000, 'discount' => 0, 'total' => 275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-09-12 09:30:00', 'updated_at' => '2026-09-13 10:15:00',
+            ],
+            [
+                'id' => 93,
+                'transaction_number' => 'RNT-20260916-0001',
+                'customer_id' => 68, 'vehicle_id' => 9,
+                'created_by' => 5, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-16 09:00:00', 'end_at' => '2026-09-18 09:00:00',
+                'handover_at' => '2026-09-16 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-09-18 09:00:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 2,
+                'subtotal' => 550000, 'discount' => 0, 'total' => 550000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-09-15 13:00:00', 'updated_at' => '2026-09-18 09:10:00',
+            ],
+            [
+                'id' => 94,
+                'transaction_number' => 'RNT-20260918-0001',
+                'customer_id' => 58, 'vehicle_id' => 3,
+                'created_by' => 3, 'booking_source' => 'phone',
+                'start_at' => '2026-09-18 08:00:00', 'end_at' => '2026-09-20 08:00:00',
+                'handover_at' => '2026-09-18 08:25:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-09-20 08:10:00', 'returned_by' => 6,
+                'daily_rate' => 425000, 'rental_days' => 2,
+                'subtotal' => 850000, 'discount' => 0, 'total' => 850000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'completed',
+                'notes' => null,
+                'created_at' => '2026-09-17 14:00:00', 'updated_at' => '2026-09-20 08:20:00',
+            ],
+
+            // Transaksi yang baru selesai hari ini — kendaraan VT-014 & VT-025 sekarang dibersihkan
+
+            [
+                'id' => 95,
+                'transaction_number' => 'RNT-20260924-0001',
+                'customer_id' => 69, 'vehicle_id' => 14,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-24 09:00:00', 'end_at' => '2026-09-28 09:00:00',
+                'handover_at' => '2026-09-24 09:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => '2026-09-28 16:10:00', 'returned_by' => 7,
+                'daily_rate' => 275000, 'rental_days' => 4,
+                'subtotal' => 1100000, 'discount' => 0, 'total' => 1100000,
+                'late_minutes' => 370, 'late_fee' => 350000,
+                'status' => 'completed',
+                'notes' => 'Liburan keluarga akhir September.',
+                'created_at' => '2026-09-23 11:00:00', 'updated_at' => '2026-09-28 16:00:00',
+            ],
+            [
+                'id' => 96,
+                'transaction_number' => 'RNT-20260925-0001',
+                'customer_id' => 70, 'vehicle_id' => 25,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2026-09-25 08:00:00', 'end_at' => '2026-09-28 08:00:00',
+                'handover_at' => '2026-09-25 08:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => '2026-09-28 17:10:00', 'returned_by' => 6,
+                'daily_rate' => 400000, 'rental_days' => 3,
+                'subtotal' => 1200000, 'discount' => 0, 'total' => 1200000,
+                'late_minutes' => 490, 'late_fee' => 450000,
+                'status' => 'completed',
+                'notes' => 'Kunjungan saudara dari Surabaya.',
+                'created_at' => '2026-09-24 15:00:00', 'updated_at' => '2026-09-28 16:40:00',
+            ],
+
+            // ── AKTIF SAAT INI — sedang disewa (per 29 September 2026) ────────
+
+            [
+                'id' => 97,
+                'transaction_number' => 'RNT-20260927-0001',
+                'customer_id' => 2, 'vehicle_id' => 2,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-27 09:00:00', 'end_at' => '2026-10-01 09:00:00',
+                'handover_at' => '2026-09-27 09:20:00', 'handed_over_by' => 6,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 375000, 'rental_days' => 4,
+                'subtotal' => 1500000, 'discount' => 0, 'total' => 1500000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => null,
+                'created_at' => '2026-09-26 14:00:00', 'updated_at' => '2026-09-27 09:25:00',
+            ],
+            [
+                'id' => 98,
+                'transaction_number' => 'RNT-20260928-0001',
+                'customer_id' => 71, 'vehicle_id' => 5,
+                'created_by' => 4, 'booking_source' => 'walk_in',
+                'start_at' => '2026-09-28 08:00:00', 'end_at' => '2026-10-03 08:00:00',
+                'handover_at' => '2026-09-28 08:30:00', 'handed_over_by' => 7,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 650000, 'rental_days' => 5,
+                'subtotal' => 3250000, 'discount' => 0, 'total' => 3250000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => 'Acara tasyakuran keluarga besar.',
+                'created_at' => '2026-09-27 16:00:00', 'updated_at' => '2026-09-28 08:35:00',
+            ],
+            [
+                'id' => 99,
+                'transaction_number' => 'RNT-20260927-0002',
+                'customer_id' => 40, 'vehicle_id' => 8,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2026-09-27 10:00:00', 'end_at' => '2026-10-02 10:00:00',
+                'handover_at' => '2026-09-27 10:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 500000, 'rental_days' => 5,
+                'subtotal' => 2500000, 'discount' => 0, 'total' => 2500000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => 'Wisata akhir bulan ke Bali.',
+                'created_at' => '2026-09-26 11:00:00', 'updated_at' => '2026-09-27 10:20:00',
+            ],
+            [
+                'id' => 100,
+                'transaction_number' => 'RNT-20260926-0001',
+                'customer_id' => 72, 'vehicle_id' => 12,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-26 08:00:00', 'end_at' => '2026-10-01 08:00:00',
+                'handover_at' => '2026-09-26 08:20:00', 'handed_over_by' => 7,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 425000, 'rental_days' => 5,
+                'subtotal' => 2125000, 'discount' => 0, 'total' => 2125000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => null,
+                'created_at' => '2026-09-25 15:00:00', 'updated_at' => '2026-09-26 08:25:00',
+            ],
+            [
+                'id' => 101,
+                'transaction_number' => 'RNT-20260926-0002',
+                'customer_id' => 7, 'vehicle_id' => 17,
+                'created_by' => 4, 'booking_source' => 'phone',
+                'start_at' => '2026-09-26 09:00:00', 'end_at' => '2026-10-01 09:00:00',
+                'handover_at' => '2026-09-26 09:10:00', 'handed_over_by' => 6,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 475000, 'rental_days' => 5,
+                'subtotal' => 2375000, 'discount' => 0, 'total' => 2375000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => null,
+                'created_at' => '2026-09-25 13:00:00', 'updated_at' => '2026-09-26 09:15:00',
+            ],
+            [
+                'id' => 102,
+                'transaction_number' => 'RNT-20260925-0002',
+                'customer_id' => 20, 'vehicle_id' => 21,
+                'created_by' => 5, 'booking_source' => 'walk_in',
+                'start_at' => '2026-09-25 08:00:00', 'end_at' => '2026-10-01 08:00:00',
+                'handover_at' => '2026-09-25 08:15:00', 'handed_over_by' => 7,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 375000, 'rental_days' => 6,
+                'subtotal' => 2250000, 'discount' => 0, 'total' => 2250000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => 'Perjalanan dinas ke Surabaya seminggu.',
+                'created_at' => '2026-09-24 16:00:00', 'updated_at' => '2026-09-25 08:20:00',
+            ],
+            [
+                'id' => 103,
+                'transaction_number' => 'RNT-20260927-0003',
+                'customer_id' => 10, 'vehicle_id' => 27,
+                'created_by' => 3, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-09-27 09:00:00', 'end_at' => '2026-10-02 09:00:00',
+                'handover_at' => '2026-09-27 09:15:00', 'handed_over_by' => 6,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 400000, 'rental_days' => 5,
+                'subtotal' => 2000000, 'discount' => 0, 'total' => 2000000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'rented',
+                'notes' => null,
+                'created_at' => '2026-09-26 10:00:00', 'updated_at' => '2026-09-27 09:20:00',
+            ],
+
+            // ── DIBOOKING — belum serah terima, tanggal mulai mendatang ────────
+
+            [
+                'id' => 104,
+                'transaction_number' => 'RNT-20260929-0001',
+                'customer_id' => 37, 'vehicle_id' => 7,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-10-02 09:00:00', 'end_at' => '2026-10-05 09:00:00',
+                'handover_at' => null, 'handed_over_by' => null,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 425000, 'rental_days' => 3,
+                'subtotal' => 1275000, 'discount' => 0, 'total' => 1275000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'booked',
+                'notes' => null,
+                'created_at' => '2026-09-29 08:30:00', 'updated_at' => '2026-09-29 08:30:00',
+            ],
+            [
+                'id' => 105,
+                'transaction_number' => 'RNT-20260929-0002',
+                'customer_id' => 53, 'vehicle_id' => 18,
+                'created_by' => 5, 'booking_source' => 'phone',
+                'start_at' => '2026-10-04 08:00:00', 'end_at' => '2026-10-07 08:00:00',
+                'handover_at' => null, 'handed_over_by' => null,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 525000, 'rental_days' => 3,
+                'subtotal' => 1575000, 'discount' => 0, 'total' => 1575000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'booked',
+                'notes' => null,
+                'created_at' => '2026-09-29 09:00:00', 'updated_at' => '2026-09-29 09:00:00',
+            ],
+            [
+                'id' => 106,
+                'transaction_number' => 'RNT-20260929-0003',
+                'customer_id' => 45, 'vehicle_id' => 19,
+                'created_by' => 3, 'booking_source' => 'referral',
+                'start_at' => '2026-10-05 09:00:00', 'end_at' => '2026-10-08 09:00:00',
+                'handover_at' => null, 'handed_over_by' => null,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 450000, 'rental_days' => 3,
+                'subtotal' => 1350000, 'discount' => 0, 'total' => 1350000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'booked',
+                'notes' => 'Referral dari pelanggan tetap.',
+                'created_at' => '2026-09-29 10:00:00', 'updated_at' => '2026-09-29 10:00:00',
+            ],
+            [
+                'id' => 107,
+                'transaction_number' => 'RNT-20260929-0004',
+                'customer_id' => 69, 'vehicle_id' => 29,
+                'created_by' => 4, 'booking_source' => 'whatsapp',
+                'start_at' => '2026-10-10 08:00:00', 'end_at' => '2026-10-17 08:00:00',
+                'handover_at' => null, 'handed_over_by' => null,
+                'actual_return_at' => null, 'returned_by' => null,
+                'daily_rate' => 375000, 'rental_days' => 7,
+                'subtotal' => 2625000, 'discount' => 125000, 'total' => 2500000,
+                'late_minutes' => 0, 'late_fee' => 0,
+                'status' => 'booked',
+                'notes' => 'Liburan akhir tahun keluarga ke Lombok. Diskon sewa panjang.',
+                'created_at' => '2026-09-29 11:00:00', 'updated_at' => '2026-09-29 11:00:00',
+            ],
+
         ]);
-    }
-
-    private function seedRecentlyReturned(): void
-    {
-        $vehicle = Vehicle::where('code', 'VT-011')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050202850002')->firstOrFail();
-
-        $start = now()->subDays(7)->setTime(9, 0);
-        $end = now()->subDay()->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
-
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Completed, BookingSource::WalkIn, 'Sewa mingguan.');
-
-        $this->pay($tx, 500000, PaymentType::DownPayment, PaymentMethod::Cash, now()->subDays(8)->toDateString(), 'DP.');
-        $this->pay($tx, $subtotal - 500000, PaymentType::Final, PaymentMethod::Transfer, now()->subDay()->toDateString(), 'Pelunasan.');
-
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 850, FuelLevel::Full, null);
-        $this->returnVehicle($tx, $vehicle, $start->copy()->addDays($days)->subHours(6), (int) $vehicle->odometer, FuelLevel::Quarter, VehicleStatus::Cleaning, 'Kabin kotor setelah perjalanan, perlu pembersihan menyeluruh.');
-
-        $tx->update(['status' => TransactionStatus::Completed]);
-    }
-
-    private function seedOlderCompletedRental(): void
-    {
-        $vehicle = Vehicle::where('code', 'VT-002')->firstOrFail();
-        $customer = Customer::where('id_number', '3271050303790003')->firstOrFail();
-
-        $start = now()->subDays(25)->setTime(9, 0);
-        $end = now()->subDays(22)->setTime(9, 0);
-        $days = $this->days($start, $end);
-        $subtotal = $days * (int) $vehicle->daily_rate;
-
-        $tx = $this->createTransaction($vehicle, $customer, $start, $end, $days, $subtotal, TransactionStatus::Completed, BookingSource::Other, 'Corporate rental.');
-
-        $this->pay($tx, 500000, PaymentType::DownPayment, PaymentMethod::Transfer, now()->subDays(26)->toDateString(), 'DP.');
-        $this->pay($tx, $subtotal - 500000, PaymentType::Final, PaymentMethod::Transfer, now()->subDays(22)->toDateString(), 'Pelunasan.');
-
-        $this->handover($tx, $vehicle, $start, (int) $vehicle->odometer - 900, FuelLevel::Full, null);
-        $this->returnVehicle($tx, $vehicle, $end, (int) $vehicle->odometer - 450, FuelLevel::ThreeQuarters, VehicleStatus::Available, null);
-
-        $tx->update(['status' => TransactionStatus::Completed]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function createTransaction(
-        Vehicle $vehicle,
-        Customer $customer,
-        Carbon $start,
-        Carbon $end,
-        int $days,
-        int $subtotal,
-        TransactionStatus $status,
-        BookingSource $source,
-        ?string $notes = null,
-        int $lateMinutes = 0,
-        int $lateFee = 0,
-    ): Transaction {
-        $transaction = Transaction::create([
-            'transaction_number' => $this->numbers->transactionNumber(),
-            'customer_id' => $customer->id,
-            'vehicle_id' => $vehicle->id,
-            'created_by' => $this->admin->id,
-            'booking_source' => $source,
-            'start_at' => $start,
-            'end_at' => $end,
-            'daily_rate' => $vehicle->daily_rate,
-            'rental_days' => $days,
-            'subtotal' => $subtotal,
-            'discount' => 0,
-            'total' => $subtotal,
-            'late_minutes' => $lateMinutes,
-            'late_fee' => $lateFee,
-            'status' => $status,
-            'notes' => $notes,
-        ]);
-
-        $transaction->logs()->create([
-            'user_id' => $this->admin->id,
-            'action' => 'created',
-            'to_status' => $status->value,
-            'description' => "Transaksi dibuat oleh {$this->admin->name} (seed data).",
-        ]);
-
-        return $transaction;
-    }
-
-    private function pay(Transaction $transaction, int $amount, PaymentType $type, PaymentMethod $method, string $paidAt, ?string $notes): void
-    {
-        Payment::create([
-            'payment_number' => $this->numbers->paymentNumber(),
-            'transaction_id' => $transaction->id,
-            'amount' => $amount,
-            'method' => $method,
-            'type' => $type,
-            'paid_at' => $paidAt,
-            'notes' => $notes,
-            'recorded_by' => $this->admin->id,
-        ]);
-
-        $transaction->logs()->create([
-            'user_id' => $this->admin->id,
-            'action' => 'payment',
-            'description' => sprintf('%s sebesar %s dicatat oleh %s.', $type->label(), rupiah($amount), $this->admin->name),
-        ]);
-    }
-
-    private function handover(Transaction $transaction, Vehicle $vehicle, Carbon $when, int $odometer, FuelLevel $fuel, ?string $existingDamage): void
-    {
-        Inspection::create([
-            'vehicle_id' => $vehicle->id,
-            'transaction_id' => $transaction->id,
-            'type' => InspectionType::Handover,
-            'inspected_at' => $when,
-            'inspected_by' => $this->staff->id,
-            'odometer' => $odometer,
-            'fuel_level' => $fuel,
-            'exterior_condition' => ConditionLevel::Good,
-            'interior_condition' => ConditionLevel::Good,
-            'tire_condition' => TireCondition::Good,
-            'completeness' => Completeness::Complete,
-            'existing_damage' => $existingDamage,
-            'notes' => 'Pemeriksaan kondisi awal (seed data).',
-        ]);
-
-        $transaction->update([
-            'handover_at' => $when,
-            'handed_over_by' => $this->staff->id,
-            'status' => TransactionStatus::Rented,
-        ]);
-
-        $vehicle->update([
-            'status' => VehicleStatus::Rented,
-            'odometer' => max((int) $vehicle->odometer, $odometer),
-            'fuel_level' => $fuel,
-        ]);
-
-        $transaction->logs()->create([
-            'user_id' => $this->staff->id,
-            'action' => 'handover',
-            'from_status' => TransactionStatus::ReadyForHandover->value,
-            'to_status' => TransactionStatus::Rented->value,
-            'description' => "Kendaraan diserahkan kepada pelanggan oleh {$this->staff->name}.",
-        ]);
-    }
-
-    private function returnVehicle(
-        Transaction $transaction,
-        Vehicle $vehicle,
-        ?Carbon $when,
-        ?int $odometer,
-        ?FuelLevel $fuel,
-        ?VehicleStatus $nextStatus,
-        ?string $notes,
-    ): void {
-        if ($when === null) {
-            return;
-        }
-
-        Inspection::create([
-            'vehicle_id' => $vehicle->id,
-            'transaction_id' => $transaction->id,
-            'type' => InspectionType::Return,
-            'inspected_at' => $when,
-            'inspected_by' => $this->staff->id,
-            'odometer' => $odometer,
-            'fuel_level' => $fuel,
-            'exterior_condition' => ConditionLevel::Good,
-            'interior_condition' => ConditionLevel::Minor,
-            'tire_condition' => TireCondition::Good,
-            'completeness' => Completeness::Complete,
-            'new_damage' => null,
-            'notes' => $notes,
-            'vehicle_status_after' => $nextStatus?->value,
-        ]);
-
-        $transaction->update([
-            'actual_return_at' => $when,
-            'returned_by' => $this->staff->id,
-        ]);
-
-        $vehicle->update([
-            'status' => $nextStatus ?? $vehicle->status,
-            'odometer' => $odometer !== null ? max((int) $vehicle->odometer, $odometer) : $vehicle->odometer,
-            'fuel_level' => $fuel ?? $vehicle->fuel_level,
-        ]);
-
-        $transaction->logs()->create([
-            'user_id' => $this->staff->id,
-            'action' => 'return',
-            'description' => "Kendaraan dikembalikan dan diperiksa oleh {$this->staff->name}.",
-        ]);
-    }
-
-    private function days(Carbon $start, Carbon $end): int
-    {
-        return (int) max(1, ceil($start->diffInHours($end) / 24));
     }
 }

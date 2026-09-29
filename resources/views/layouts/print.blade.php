@@ -12,6 +12,8 @@
 <body style="background:#fff">
     <div class="content print-page">
         @yield('content')
+
+        <p class="print-credit">{{ config('app.author.copyright') }}</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

@@ -41,7 +41,8 @@ Dikembangkan oleh **Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx)**.
   - Pengaturan dinamis: identitas perusahaan, prefix nomor, DP minimum, aturan denda.
   - Halaman audit log khusus Super Admin.
 - **Identitas Aplikasi**:
-  - Nama aplikasi dan copyright author terpusat di `config/app.php` dan tampil di footer sidebar.
+  - Nama aplikasi dan copyright author terpusat di `config/app.php` (dapat dioverride via `.env` `APP_AUTHOR_*`) serta diimplementasikan pada footer sidebar, halaman login, halaman error, dan dokumen cetak invoice.
+  - Metadata author terdaftar pada `composer.json`.
 - **Dokumentasi**:
   - README lengkap (fitur, instalasi, akun demo) dengan QRIS donasi.
   - LICENSE proprietary, SECURITY.md, CONTRIBUTING.md, SUPPORT.md, CHANGELOG.md.

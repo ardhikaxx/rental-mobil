@@ -2,71 +2,389 @@
 
 namespace Database\Seeders;
 
-use App\Enums\MaintenanceStatus;
-use App\Enums\MaintenanceType;
-use App\Enums\VehicleStatus;
 use App\Models\Maintenance;
-use App\Models\User;
-use App\Models\Vehicle;
 use Illuminate\Database\Seeder;
 
 class MaintenanceSeeder extends Seeder
 {
+    /**
+     * Catatan perawatan kendaraan — ditulis eksplisit tanpa factory/faker/loop.
+     *
+     * Aturan status kendaraan yang harus dijaga:
+     *  - V10 (Yaris L 1043 UZ)   → status 'perawatan' ← ada maintenance in_progress dimulai 26 Sep 2026
+     *  - V16 (Mobilio P 1386 UA) → status 'perawatan' ← ada maintenance in_progress dimulai 24 Sep 2026
+     *  - V23 (Ignis N 1550 UM)   → status 'perawatan' ← ada maintenance in_progress dimulai 22 Sep 2026
+     *
+     * type  : routine | oil | tire | brake | engine | electrical | body | other
+     * status: scheduled | in_progress | completed | cancelled
+     */
     public function run(): void
     {
-        $owner = User::where('username', 'superadmin')->firstOrFail();
-        $staff = User::where('username', 'stafgarasi')->firstOrFail();
+        Maintenance::insert([
 
-        // Riwayat perawatan selesai (VT-001).
-        $vehicle = Vehicle::where('code', 'VT-001')->firstOrFail();
-        Maintenance::firstOrCreate(
-            ['vehicle_id' => $vehicle->id, 'start_date' => now()->subDays(40)->toDateString()],
-            [
-                'type' => MaintenanceType::Routine->value,
-                'status' => MaintenanceStatus::Completed->value,
-                'end_date' => now()->subDays(38)->toDateString(),
-                'odometer' => 45000,
-                'description' => 'Servis rutin 40.000 km: ganti oli, filter, dan pemeriksaan rem.',
-                'cost' => 850000,
-                'workshop' => 'Bengkel Sejahtera Motor',
-                'notes' => 'Kendaraan dalam kondisi baik setelah servis.',
-                'recorded_by' => $owner->id,
-            ],
-        );
+            // ── Histori perawatan V1 — Toyota Avanza 1.3 G 2022 ──────────────
+            ['id' => 1, 'vehicle_id' => 1,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-04-08', 'end_date' => '2025-04-08',
+                'odometer' => 82000, 'description' => 'Ganti oli mesin 10W-40 dan filter oli.',
+                'cost' => 185000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-04-08 10:00:00', 'updated_at' => '2025-04-08 14:00:00'],
+            ['id' => 2, 'vehicle_id' => 1,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-10-15', 'end_date' => '2025-10-15',
+                'odometer' => 117000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter, cek rem, cek AC.',
+                'cost' => 580000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-10-15 09:00:00', 'updated_at' => '2025-10-15 15:00:00'],
+            ['id' => 3, 'vehicle_id' => 1,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2026-04-10', 'end_date' => '2026-04-10',
+                'odometer' => 135000, 'description' => 'Ganti oli mesin dan filter.',
+                'cost' => 195000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-04-10 10:00:00', 'updated_at' => '2026-04-10 13:00:00'],
 
-        // Perawatan berjalan (VT-010) — kendaraan berstatus perawatan.
-        $vehicle = Vehicle::where('code', 'VT-010')->firstOrFail();
-        $active = Maintenance::firstOrCreate(
-            ['vehicle_id' => $vehicle->id, 'start_date' => now()->subDays(2)->toDateString()],
-            [
-                'type' => MaintenanceType::Brake->value,
-                'status' => MaintenanceStatus::InProgress->value,
-                'end_date' => null,
-                'odometer' => 40200,
-                'description' => 'Ganti kampas rem depan dan pemeriksaan sistem pengereman.',
-                'cost' => 0,
-                'workshop' => 'Bengkel Sejahtera Motor',
-                'notes' => 'Menunggu suku cadang.',
-                'recorded_by' => $staff->id,
-            ],
-        );
-        $vehicle->update(['status' => VehicleStatus::Maintenance]);
+            // ── Histori perawatan V2 — Toyota Avanza 1.3 G 2023 ──────────────
+            ['id' => 4, 'vehicle_id' => 2,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-06-20', 'end_date' => '2025-06-20',
+                'odometer' => 95000, 'description' => 'Ganti oli mesin 5W-30 sintetis dan filter oli.',
+                'cost' => 210000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-06-20 09:00:00', 'updated_at' => '2025-06-20 12:00:00'],
+            ['id' => 5, 'vehicle_id' => 2,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-01-10', 'end_date' => '2026-01-10',
+                'odometer' => 107000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter udara, cek rem dan suspensi.',
+                'cost' => 640000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-01-10 08:00:00', 'updated_at' => '2026-01-10 14:00:00'],
 
-        // Perawatan terjadwal (VT-002).
-        $vehicle = Vehicle::where('code', 'VT-002')->firstOrFail();
-        Maintenance::firstOrCreate(
-            ['vehicle_id' => $vehicle->id, 'start_date' => now()->addDays(3)->toDateString()],
-            [
-                'type' => MaintenanceType::Oil->value,
-                'status' => MaintenanceStatus::Scheduled->value,
-                'end_date' => null,
-                'odometer' => 62500,
-                'description' => 'Ganti oli mesin dan filter udara terjadwal.',
-                'cost' => 0,
-                'workshop' => 'Bengkel Sejahtera Motor',
-                'notes' => null,
-                'recorded_by' => $owner->id,
-            ],
-        );
+            // ── Histori perawatan V4 — Toyota Innova Reborn 2021 ─────────────
+            ['id' => 6, 'vehicle_id' => 4,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-02-20', 'end_date' => '2025-02-20',
+                'odometer' => 148000, 'description' => 'Ganti oli mesin 10W-40 semi sintetis dan filter oli.',
+                'cost' => 235000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-02-20 09:00:00', 'updated_at' => '2025-02-20 12:00:00'],
+            ['id' => 7, 'vehicle_id' => 4,
+                'type' => 'brake', 'status' => 'completed',
+                'start_date' => '2025-07-02', 'end_date' => '2025-07-03',
+                'odometer' => 158500, 'description' => 'Ganti kampas rem depan dan belakang. Cek kaliper rem.',
+                'cost' => 1280000, 'workshop' => 'Bengkel Spesialis Rem Jember',
+                'notes' => 'Kampas rem sudah sangat tipis, perlu segera diganti sebelum sewa berikutnya.', 'recorded_by' => 1,
+                'created_at' => '2025-07-02 08:00:00', 'updated_at' => '2025-07-03 10:00:00'],
+            ['id' => 8, 'vehicle_id' => 4,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-02-05', 'end_date' => '2026-02-06',
+                'odometer' => 171000, 'description' => 'Servis berkala 180.000 km: ganti oli, filter, busi, dan cek komprehensif mesin.',
+                'cost' => 1850000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-02-05 08:00:00', 'updated_at' => '2026-02-06 15:00:00'],
+
+            // ── Histori perawatan V5 — Toyota Innova Zenix G 2023 ────────────
+            ['id' => 9, 'vehicle_id' => 5,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-05-15', 'end_date' => '2025-05-15',
+                'odometer' => 45000, 'description' => 'Ganti oli mesin 0W-20 full sintetis dan filter oli.',
+                'cost' => 380000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => 'Unit hybrid menggunakan oli khusus.', 'recorded_by' => 1,
+                'created_at' => '2025-05-15 09:00:00', 'updated_at' => '2025-05-15 11:00:00'],
+            ['id' => 10, 'vehicle_id' => 5,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-11-08', 'end_date' => '2025-11-09',
+                'odometer' => 57500, 'description' => 'Servis berkala 60.000 km: ganti oli, filter, cek sistem hybrid, cek rem.',
+                'cost' => 1240000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => 'Cek baterai hybrid dalam kondisi baik.', 'recorded_by' => 2,
+                'created_at' => '2025-11-08 08:00:00', 'updated_at' => '2025-11-09 14:00:00'],
+            ['id' => 11, 'vehicle_id' => 5,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2026-06-04', 'end_date' => '2026-06-04',
+                'odometer' => 81000, 'description' => 'Ganti oli mesin dan filter oli.',
+                'cost' => 390000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-06-04 09:00:00', 'updated_at' => '2026-06-04 11:00:00'],
+
+            // ── Histori perawatan V7 — Toyota Rush 2022 ──────────────────────
+            ['id' => 12, 'vehicle_id' => 7,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-08-22', 'end_date' => '2025-08-22',
+                'odometer' => 108000, 'description' => 'Ganti oli mesin dan filter oli.',
+                'cost' => 195000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-08-22 10:00:00', 'updated_at' => '2025-08-22 12:00:00'],
+            ['id' => 13, 'vehicle_id' => 7,
+                'type' => 'tire', 'status' => 'completed',
+                'start_date' => '2026-03-18', 'end_date' => '2026-03-18',
+                'odometer' => 123000, 'description' => 'Ganti 4 ban baru merk Bridgestone Ecopia ukuran 195/65R15.',
+                'cost' => 3200000, 'workshop' => 'Toko Ban Prima Jember',
+                'notes' => 'Ban lama sudah melewati batas pemakaian.', 'recorded_by' => 1,
+                'created_at' => '2026-03-18 09:00:00', 'updated_at' => '2026-03-18 13:00:00'],
+
+            // ── Histori perawatan V9 — Toyota Agya 2021 ──────────────────────
+            ['id' => 14, 'vehicle_id' => 9,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-03-12', 'end_date' => '2025-03-12',
+                'odometer' => 125000, 'description' => 'Ganti oli mesin 10W-30 dan filter oli.',
+                'cost' => 175000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-03-12 10:00:00', 'updated_at' => '2025-03-12 12:00:00'],
+            ['id' => 15, 'vehicle_id' => 9,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-09-20', 'end_date' => '2025-09-20',
+                'odometer' => 140000, 'description' => 'Servis berkala 150.000 km: ganti oli, filter, tune-up mesin.',
+                'cost' => 720000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-09-20 09:00:00', 'updated_at' => '2025-09-20 15:00:00'],
+
+            // ── Histori perawatan V10 — Toyota Yaris 2022 ────────────────────
+            ['id' => 16, 'vehicle_id' => 10,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-05-08', 'end_date' => '2025-05-08',
+                'odometer' => 82000, 'description' => 'Ganti oli mesin 10W-30 sintetis dan filter oli.',
+                'cost' => 210000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-05-08 09:00:00', 'updated_at' => '2025-05-08 11:00:00'],
+            ['id' => 17, 'vehicle_id' => 10,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-11-18', 'end_date' => '2025-11-19',
+                'odometer' => 96000, 'description' => 'Servis berkala 100.000 km: ganti oli, filter udara, filter bahan bakar, cek rem, cek AC.',
+                'cost' => 1420000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-11-18 08:00:00', 'updated_at' => '2025-11-19 15:00:00'],
+            // ── Perawatan aktif V10 ─────────────────────────────────────────
+            ['id' => 18, 'vehicle_id' => 10,
+                'type' => 'brake', 'status' => 'in_progress',
+                'start_date' => '2026-09-26', 'end_date' => null,
+                'odometer' => 104925, 'description' => 'Ganti kampas rem depan kiri dan kanan. Cek fluid rem dan kaliper.',
+                'cost' => 0, 'workshop' => 'Bengkel Spesialis Rem Jember',
+                'notes' => 'Kampas rem depan sudah sangat tipis; masuk bengkel 26 September 2026. Perkiraan selesai 30 September.', 'recorded_by' => 2,
+                'created_at' => '2026-09-26 09:00:00', 'updated_at' => '2026-09-26 09:00:00'],
+
+            // ── Histori perawatan V11 — Daihatsu Xenia 2022 ──────────────────
+            ['id' => 19, 'vehicle_id' => 11,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-04-25', 'end_date' => '2025-04-25',
+                'odometer' => 98000, 'description' => 'Ganti oli mesin 10W-40 dan filter oli.',
+                'cost' => 185000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-04-25 09:00:00', 'updated_at' => '2025-04-25 11:00:00'],
+            ['id' => 20, 'vehicle_id' => 11,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-01-22', 'end_date' => '2026-01-22',
+                'odometer' => 120000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter, tune-up, cek AC.',
+                'cost' => 880000, 'workshop' => 'Daihatsu Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-01-22 08:00:00', 'updated_at' => '2026-01-22 15:00:00'],
+
+            // ── Histori perawatan V12 — Daihatsu Terios 2021 ─────────────────
+            ['id' => 21, 'vehicle_id' => 12,
+                'type' => 'tire', 'status' => 'completed',
+                'start_date' => '2025-08-12', 'end_date' => '2025-08-12',
+                'odometer' => 121400, 'description' => 'Ganti 4 ban baru Dunlop SP Touring T1 ukuran 195/65R15.',
+                'cost' => 2960000, 'workshop' => 'Toko Ban Prima Jember',
+                'notes' => 'Ban lama melampaui batas pemakaian normal; kedalaman alur hampir habis.', 'recorded_by' => 1,
+                'created_at' => '2025-08-12 09:00:00', 'updated_at' => '2025-08-12 13:00:00'],
+            ['id' => 22, 'vehicle_id' => 12,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-08-12', 'end_date' => '2025-08-12',
+                'odometer' => 121400, 'description' => 'Ganti oli mesin 10W-40 dan filter oli sekaligus dengan penggantian ban.',
+                'cost' => 195000, 'workshop' => 'Daihatsu Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-08-12 09:00:00', 'updated_at' => '2025-08-12 11:00:00'],
+            ['id' => 23, 'vehicle_id' => 12,
+                'type' => 'body', 'status' => 'completed',
+                'start_date' => '2025-09-05', 'end_date' => '2025-09-06',
+                'odometer' => 121500, 'description' => 'Perbaikan dan poles bodi: hilangkan lecet pintu kiri belakang.',
+                'cost' => 450000, 'workshop' => 'Body Repair Auto Color Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-09-05 08:00:00', 'updated_at' => '2025-09-06 12:00:00'],
+            ['id' => 24, 'vehicle_id' => 12,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-04-02', 'end_date' => '2026-04-02',
+                'odometer' => 160000, 'description' => 'Servis berkala 160.000 km: ganti oli, filter, cek rem, cek AC.',
+                'cost' => 950000, 'workshop' => 'Daihatsu Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-04-02 08:00:00', 'updated_at' => '2026-04-02 14:00:00'],
+
+            // ── Histori perawatan V15 — Honda Brio RS 2022 ───────────────────
+            ['id' => 25, 'vehicle_id' => 15,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-06-14', 'end_date' => '2025-06-14',
+                'odometer' => 90000, 'description' => 'Ganti oli mesin 5W-30 sintetis dan filter oli.',
+                'cost' => 220000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-06-14 10:00:00', 'updated_at' => '2025-06-14 12:00:00'],
+            ['id' => 26, 'vehicle_id' => 15,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-12-08', 'end_date' => '2025-12-08',
+                'odometer' => 102000, 'description' => 'Servis berkala 100.000 km: ganti oli, filter, busi, cek AC dan suspensi.',
+                'cost' => 1150000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-12-08 08:00:00', 'updated_at' => '2025-12-08 15:00:00'],
+
+            // ── Histori perawatan V16 — Honda Mobilio 2021 ───────────────────
+            ['id' => 27, 'vehicle_id' => 16,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-03-20', 'end_date' => '2025-03-20',
+                'odometer' => 138000, 'description' => 'Ganti oli mesin 10W-30 dan filter oli.',
+                'cost' => 185000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-03-20 09:00:00', 'updated_at' => '2025-03-20 11:00:00'],
+            ['id' => 28, 'vehicle_id' => 16,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-10-06', 'end_date' => '2025-10-07',
+                'odometer' => 152000, 'description' => 'Servis berkala 150.000 km: ganti oli, filter lengkap, tune-up, cek suspensi.',
+                'cost' => 1680000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-10-06 08:00:00', 'updated_at' => '2025-10-07 14:00:00'],
+            // ── Perawatan aktif V16 ─────────────────────────────────────────
+            ['id' => 29, 'vehicle_id' => 16,
+                'type' => 'other', 'status' => 'in_progress',
+                'start_date' => '2026-09-24', 'end_date' => null,
+                'odometer' => 164209, 'description' => 'Tune up mesin lengkap dan servis AC: ganti freon, bersihkan evaporator, cek kompresor.',
+                'cost' => 0, 'workshop' => 'Honda Dealer Jember',
+                'notes' => 'AC kurang dingin sejak Agustus 2026. Masuk dealer 24 September. Perkiraan selesai 1 Oktober 2026.', 'recorded_by' => 1,
+                'created_at' => '2026-09-24 08:00:00', 'updated_at' => '2026-09-24 08:00:00'],
+
+            // ── Histori perawatan V17 — Honda BR-V 2022 ──────────────────────
+            ['id' => 30, 'vehicle_id' => 17,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-07-10', 'end_date' => '2025-07-10',
+                'odometer' => 96000, 'description' => 'Ganti oli mesin 5W-30 sintetis dan filter oli.',
+                'cost' => 225000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-07-10 10:00:00', 'updated_at' => '2025-07-10 12:00:00'],
+            ['id' => 31, 'vehicle_id' => 17,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-02-12', 'end_date' => '2026-02-12',
+                'odometer' => 112000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter, cek rem, AC, dan suspensi.',
+                'cost' => 1020000, 'workshop' => 'Honda Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-02-12 08:00:00', 'updated_at' => '2026-02-12 15:00:00'],
+
+            // ── Histori perawatan V19 — Mitsubishi Xpander 2022 ──────────────
+            ['id' => 32, 'vehicle_id' => 19,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-05-28', 'end_date' => '2025-05-28',
+                'odometer' => 94000, 'description' => 'Ganti oli mesin 10W-40 dan filter oli.',
+                'cost' => 195000, 'workshop' => 'Mitsubishi Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-05-28 09:00:00', 'updated_at' => '2025-05-28 11:00:00'],
+            ['id' => 33, 'vehicle_id' => 19,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-12-15', 'end_date' => '2025-12-15',
+                'odometer' => 110000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter, spark plug, cek AC.',
+                'cost' => 1380000, 'workshop' => 'Mitsubishi Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-12-15 08:00:00', 'updated_at' => '2025-12-15 15:00:00'],
+
+            // ── Histori perawatan V21 — Suzuki Ertiga 2021 ───────────────────
+            ['id' => 34, 'vehicle_id' => 21,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-04-05', 'end_date' => '2025-04-05',
+                'odometer' => 128000, 'description' => 'Ganti oli mesin 10W-40 dan filter oli.',
+                'cost' => 180000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2025-04-05 09:00:00', 'updated_at' => '2025-04-05 11:00:00'],
+            ['id' => 35, 'vehicle_id' => 21,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2025-10-20', 'end_date' => '2025-10-21',
+                'odometer' => 145000, 'description' => 'Servis berkala 150.000 km: ganti oli, filter lengkap, cek rem, suspensi, dan tune-up.',
+                'cost' => 1560000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-10-20 08:00:00', 'updated_at' => '2025-10-21 14:00:00'],
+            ['id' => 36, 'vehicle_id' => 21,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2026-05-08', 'end_date' => '2026-05-08',
+                'odometer' => 153000, 'description' => 'Ganti oli mesin 10W-40 dan filter oli.',
+                'cost' => 180000, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-05-08 09:00:00', 'updated_at' => '2026-05-08 11:00:00'],
+
+            // ── Histori perawatan V22 — Suzuki XL7 2022 ──────────────────────
+            ['id' => 37, 'vehicle_id' => 22,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-07-25', 'end_date' => '2025-07-25',
+                'odometer' => 102000, 'description' => 'Ganti oli mesin 5W-30 dan filter oli.',
+                'cost' => 210000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-07-25 09:00:00', 'updated_at' => '2025-07-25 11:00:00'],
+            ['id' => 38, 'vehicle_id' => 22,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-03-08', 'end_date' => '2026-03-08',
+                'odometer' => 116000, 'description' => 'Servis berkala 120.000 km: ganti oli, filter, cek AC, cek rem.',
+                'cost' => 870000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-03-08 08:00:00', 'updated_at' => '2026-03-08 15:00:00'],
+
+            // ── Histori perawatan V23 — Suzuki Ignis 2021 ────────────────────
+            ['id' => 39, 'vehicle_id' => 23,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2025-04-14', 'end_date' => '2025-04-14',
+                'odometer' => 115000, 'description' => 'Ganti oli mesin 10W-30 dan filter oli.',
+                'cost' => 175000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2025-04-14 09:00:00', 'updated_at' => '2025-04-14 11:00:00'],
+            ['id' => 40, 'vehicle_id' => 23,
+                'type' => 'electrical', 'status' => 'completed',
+                'start_date' => '2025-09-12', 'end_date' => '2025-09-13',
+                'odometer' => 132000, 'description' => 'Perbaikan kelistrikan: sensor AC bermasalah, cek modul ECU.',
+                'cost' => 680000, 'workshop' => 'Bengkel Spesialis Kelistrikan Jember',
+                'notes' => 'AC sempat tidak berfungsi; penyebab ditemukan pada sensor suhu evaporator.', 'recorded_by' => 2,
+                'created_at' => '2025-09-12 08:00:00', 'updated_at' => '2025-09-13 14:00:00'],
+            ['id' => 41, 'vehicle_id' => 23,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-03-25', 'end_date' => '2026-03-25',
+                'odometer' => 138000, 'description' => 'Servis berkala 140.000 km: ganti oli, filter, busi, cek rem dan suspensi.',
+                'cost' => 740000, 'workshop' => 'Suzuki Dealer Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-03-25 08:00:00', 'updated_at' => '2026-03-25 14:00:00'],
+            // ── Perawatan aktif V23 ─────────────────────────────────────────
+            ['id' => 42, 'vehicle_id' => 23,
+                'type' => 'engine', 'status' => 'in_progress',
+                'start_date' => '2026-09-22', 'end_date' => null,
+                'odometer' => 141583, 'description' => 'Penggantian kompresor AC dan overhaul kaki-kaki depan: ganti ball joint, tie rod, dan bushing.',
+                'cost' => 0, 'workshop' => 'Bengkel Spesialis Kaki-Kaki Jember',
+                'notes' => 'Kompresor AC rusak total. Kaki-kaki depan sudah aus dan berbunyi. Masuk bengkel 22 September 2026. Perkiraan selesai 5 Oktober 2026.', 'recorded_by' => 2,
+                'created_at' => '2026-09-22 09:00:00', 'updated_at' => '2026-09-22 09:00:00'],
+
+            // ── Histori perawatan V24 — Toyota Innova Zenix HV 2024 ──────────
+            ['id' => 43, 'vehicle_id' => 24,
+                'type' => 'oil', 'status' => 'completed',
+                'start_date' => '2026-03-12', 'end_date' => '2026-03-12',
+                'odometer' => 38000, 'description' => 'Ganti oli mesin 0W-20 full sintetis dan filter oli. Unit hybrid.',
+                'cost' => 420000, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => null, 'recorded_by' => 1,
+                'created_at' => '2026-03-12 09:00:00', 'updated_at' => '2026-03-12 11:00:00'],
+
+            // ── Histori perawatan V30 — Daihatsu Ayla 2020 (tidak aktif) ─────
+            ['id' => 44, 'vehicle_id' => 30,
+                'type' => 'routine', 'status' => 'completed',
+                'start_date' => '2026-06-20', 'end_date' => '2026-06-21',
+                'odometer' => 127000, 'description' => 'Servis berkala sekaligus cek kondisi kendaraan sebelum dijual.',
+                'cost' => 920000, 'workshop' => 'Daihatsu Dealer Jember',
+                'notes' => 'Unit akan dijual — dilakukan servis akhir untuk nilai jual yang baik.', 'recorded_by' => 2,
+                'created_at' => '2026-06-20 08:00:00', 'updated_at' => '2026-06-21 13:00:00'],
+
+            // ── Perawatan terjadwal mendatang ─────────────────────────────────
+            ['id' => 45, 'vehicle_id' => 4,
+                'type' => 'oil', 'status' => 'scheduled',
+                'start_date' => '2026-10-10', 'end_date' => null,
+                'odometer' => null, 'description' => 'Ganti oli mesin terjadwal — estimasi setelah TRX 60 kembali.',
+                'cost' => 0, 'workshop' => 'Toyota Auto2000 Jember',
+                'notes' => 'Interval oli 6.000 km dari servis terakhir.', 'recorded_by' => 1,
+                'created_at' => '2026-09-25 09:00:00', 'updated_at' => '2026-09-25 09:00:00'],
+            ['id' => 46, 'vehicle_id' => 11,
+                'type' => 'oil', 'status' => 'scheduled',
+                'start_date' => '2026-10-05', 'end_date' => null,
+                'odometer' => null, 'description' => 'Ganti oli mesin terjadwal berkala.',
+                'cost' => 0, 'workshop' => 'Bengkel Auto Jaya Jember',
+                'notes' => null, 'recorded_by' => 2,
+                'created_at' => '2026-09-20 09:00:00', 'updated_at' => '2026-09-20 09:00:00'],
+
+        ]);
     }
 }
