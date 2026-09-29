@@ -13,7 +13,7 @@
     <div class="row g-3">
         <div class="col-lg-7">
             <x-panel title="Identitas Pelanggan">
-                <form method="POST" action="{{ route('customers.store') }}">
+                <form method="POST" action="{{ route('customers.store') }}" enctype="multipart/form-data">
                     @csrf
 
                     <div class="row g-3">
@@ -21,8 +21,12 @@
                             <x-input name="name" label="Nama Lengkap" value="{{ old('name') }}" required placeholder="Sesuai KTP" />
                         </div>
                         <div class="col-md-6">
-                            <x-input name="id_number" label="Nomor Identitas (KTP)" value="{{ old('id_number') }}" required
+                            <x-input name="id_number" label="Nomor Identitas (NIK/KTP)" value="{{ old('id_number') }}" required
                                      placeholder="3273010101900001" hint="Harus unik. Hanya angka atau huruf, 5-32 karakter." />
+                        </div>
+                        <div class="col-md-6">
+                            <x-input name="sim_number" label="Nomor SIM A" value="{{ old('sim_number') }}"
+                                     placeholder="Misal: 1234-5678-901234" hint="Wajib untuk penyewa lepas kunci." />
                         </div>
                         <div class="col-md-6">
                             <x-input name="phone" label="Nomor Telepon" value="{{ old('phone') }}" required
@@ -36,6 +40,22 @@
                         </div>
                         <div class="col-12">
                             <x-input name="address" label="Alamat" value="{{ old('address') }}" placeholder="Opsional" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="ktp_photo">Foto / Scan KTP Asli</label>
+                                <input type="file" name="ktp_photo" id="ktp_photo" class="form-control @error('ktp_photo') is-invalid @enderror" accept="image/*">
+                                <div class="form-hint">Format JPG/PNG, maks. 5MB. Foto harus jelas dan terbaca.</div>
+                                @error('ktp_photo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="sim_photo">Foto / Scan SIM A</label>
+                                <input type="file" name="sim_photo" id="sim_photo" class="form-control @error('sim_photo') is-invalid @enderror" accept="image/*">
+                                <div class="form-hint">Format JPG/PNG, maks. 5MB. Diperlukan untuk sewa lepas kunci.</div>
+                                @error('sim_photo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
                         </div>
                         <div class="col-12">
                             <x-input name="notes" label="Catatan" type="textarea" value="{{ old('notes') }}"
