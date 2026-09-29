@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
                 SettingSeeder::class,
                 UserSeeder::class,
                 VehicleSeeder::class,
+                DriverSeeder::class,
                 CustomerSeeder::class,
                 TransactionSeeder::class,
                 PaymentSeeder::class,
