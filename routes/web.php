@@ -155,7 +155,9 @@ Route::middleware(['auth', 'role:super_admin,admin,staff'])->group(function () {
     Route::get('/pelanggan/{customer}', [CustomerController::class, 'show'])->name('customers.show');
 
     Route::get('/transaksi/{transaction}/invoice', [TransactionController::class, 'invoice'])->name('transactions.invoice');
+    Route::get('/transaksi/{transaction}/invoice/pdf', [TransactionController::class, 'invoicePdf'])->name('transactions.invoice.pdf');
     Route::get('/transaksi/{transaction}/spk', [TransactionController::class, 'spk'])->name('transactions.spk');
+    Route::get('/transaksi/{transaction}/spk/pdf', [TransactionController::class, 'spkPdf'])->name('transactions.spk.pdf');
     Route::get('/transaksi/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
 
     Route::get('/serah-terima/{transaction}', [HandoverController::class, 'create'])->name('handover.create');
