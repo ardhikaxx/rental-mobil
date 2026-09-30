@@ -13,12 +13,22 @@
         :subtitle="$transaction->customer?->name.' · '.$transaction->vehicle?->brand.' '.$transaction->vehicle?->model.' ('.$transaction->vehicle?->license_plate.')'">
         <x-slot name="actions">
             <x-status-badge kind="transaction" :value="$transaction->status" />
-            <a href="{{ route('transactions.invoice', $transaction) }}" class="btn btn-outline-primary" target="_blank">
-                <i class="fa-solid fa-print me-1"></i> Invoice
-            </a>
-            <a href="{{ route('transactions.spk', $transaction) }}" class="btn btn-outline-primary" target="_blank">
-                <i class="fa-solid fa-file-contract me-1"></i> Cetak SPK
-            </a>
+            <div class="btn-group">
+                <a href="{{ route('transactions.invoice', $transaction) }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fa-solid fa-receipt me-1"></i> Invoice
+                </a>
+                <a href="{{ route('transactions.invoice.pdf', $transaction) }}" class="btn btn-outline-primary" title="Unduh PDF Invoice">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </a>
+            </div>
+            <div class="btn-group">
+                <a href="{{ route('transactions.spk', $transaction) }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fa-solid fa-file-contract me-1"></i> SPK
+                </a>
+                <a href="{{ route('transactions.spk.pdf', $transaction) }}" class="btn btn-outline-primary" title="Unduh PDF SPK">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </a>
+            </div>
             @if ($canEdit)
                 <a href="{{ route('transactions.edit', $transaction) }}" class="btn btn-outline-primary">
                     <i class="fa-solid fa-pen me-1"></i> Ubah
