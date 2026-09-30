@@ -7,9 +7,14 @@
         <a href="{{ route('transactions.show', $transaction) }}" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Transaksi
         </a>
-        <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-            <i class="fa-solid fa-print me-1"></i> Cetak Surat Perjanjian (SPK)
-        </button>
+        <div class="d-flex gap-2">
+            <a href="{{ route('transactions.spk.pdf', $transaction) }}" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-file-pdf me-1"></i> Unduh PDF
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print me-1"></i> Cetak Surat Perjanjian (SPK)
+            </button>
+        </div>
     </div>
 
     <div class="panel">
