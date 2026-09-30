@@ -79,3 +79,24 @@ it('stores passwords hashed, never plaintext', function () {
     expect($user->password)->not->toBe('rahasia123')
         ->and(password_verify('rahasia123', $user->password))->toBeTrue();
 });
+
+it('throttles login attempts after 5 consecutive failures', function () {
+    User::factory()->create(['username' => 'targetuser', 'password' => 'correct-pass']);
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->from(route('login'))->post(route('login.attempt'), [
+            'username' => 'targetuser',
+            'password' => 'wrong-pass',
+        ])->assertSessionHasErrors('username');
+    }
+
+    // 6th attempt should be blocked by rate limiter
+    $response = $this->from(route('login'))->post(route('login.attempt'), [
+        'username' => 'targetuser',
+        'password' => 'wrong-pass',
+    ]);
+
+    $response->assertSessionHasErrors('username');
+    $errors = session('errors')->get('username');
+    expect($errors[0])->toContain('Terlalu banyak percobaan');
+});
