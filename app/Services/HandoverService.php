@@ -6,6 +6,7 @@ use App\Enums\FuelLevel;
 use App\Enums\InspectionType;
 use App\Enums\TransactionStatus;
 use App\Enums\VehicleStatus;
+use App\Models\Driver;
 use App\Models\Inspection;
 use App\Models\Transaction;
 use App\Models\User;
@@ -17,6 +18,7 @@ class HandoverService
 {
     public function __construct(
         private VehicleAvailabilityService $availability,
+        private DriverAvailabilityService $driverAvailability,
         private PhotoStorage $photos,
     ) {}
 
@@ -49,6 +51,11 @@ class HandoverService
 
             $this->availability->assertAvailable($vehicle, $transaction->start_at, $transaction->end_at, $transaction->id);
 
+            if ($transaction->with_driver && $transaction->driver_id) {
+                $driver = Driver::lockForUpdate()->findOrFail($transaction->driver_id);
+                $this->driverAvailability->assertAvailable($driver, $transaction->start_at, $transaction->end_at, $transaction->id);
+            }
+
             $inspection = Inspection::create([
                 'vehicle_id' => $vehicle->id,
                 'transaction_id' => $transaction->id,
@@ -73,6 +80,13 @@ class HandoverService
                 'fuel_level' => $data['fuel_level'],
                 'status' => VehicleStatus::Rented,
             ]);
+
+            if ($transaction->with_driver && $transaction->driver_id) {
+                $driver = Driver::lockForUpdate()->find($transaction->driver_id);
+                if ($driver && $driver->status !== 'inactive') {
+                    $driver->update(['status' => 'busy']);
+                }
+            }
 
             $fromStatus = $transaction->status->value;
             $transaction->update([
