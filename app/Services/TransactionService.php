@@ -20,6 +20,7 @@ class TransactionService
 {
     public function __construct(
         private VehicleAvailabilityService $availability,
+        private DriverAvailabilityService $driverAvailability,
         private NumberGenerator $numbers,
         private PaymentService $payments,
     ) {}
@@ -48,9 +49,17 @@ class TransactionService
 
             $withDriver = ! empty($data['with_driver']);
             $driverId = $withDriver && ! empty($data['driver_id']) ? (int) $data['driver_id'] : null;
-            $driver = $driverId ? Driver::find($driverId) : null;
-            $driverRate = $driver ? (int) $driver->daily_rate : 0;
-            $driverFee = $withDriver ? ($driverRate * $days) : 0;
+
+            if ($withDriver && $driverId) {
+                $driver = Driver::lockForUpdate()->findOrFail($driverId);
+                $this->driverAvailability->assertAvailable($driver, $start, $end);
+                $driverRate = (int) $driver->daily_rate;
+                $driverFee = $driverRate * $days;
+            } else {
+                $driver = null;
+                $driverRate = 0;
+                $driverFee = 0;
+            }
 
             $subtotal = ($days * (int) $vehicle->daily_rate) + $driverFee;
             $discount = (int) ($data['discount'] ?? 0);
@@ -135,9 +144,17 @@ class TransactionService
 
             $withDriver = ! empty($data['with_driver']);
             $driverId = $withDriver && ! empty($data['driver_id']) ? (int) $data['driver_id'] : null;
-            $driver = $driverId ? Driver::find($driverId) : null;
-            $driverRate = $driver ? (int) $driver->daily_rate : 0;
-            $driverFee = $withDriver ? ($driverRate * $days) : 0;
+
+            if ($withDriver && $driverId) {
+                $driver = Driver::lockForUpdate()->findOrFail($driverId);
+                $this->driverAvailability->assertAvailable($driver, $start, $end, $transaction->id);
+                $driverRate = (int) $driver->daily_rate;
+                $driverFee = $driverRate * $days;
+            } else {
+                $driver = null;
+                $driverRate = 0;
+                $driverFee = 0;
+            }
 
             $subtotal = ($days * (int) $vehicle->daily_rate) + $driverFee;
             $discount = (int) ($data['discount'] ?? 0);
@@ -206,6 +223,11 @@ class TransactionService
             $vehicle = Vehicle::lockForUpdate()->findOrFail($transaction->vehicle_id);
             $this->availability->assertAvailable($vehicle, $transaction->start_at, $transaction->end_at, $transaction->id);
 
+            if ($transaction->with_driver && $transaction->driver_id) {
+                $driver = Driver::lockForUpdate()->findOrFail($transaction->driver_id);
+                $this->driverAvailability->assertAvailable($driver, $transaction->start_at, $transaction->end_at, $transaction->id);
+            }
+
             $paid = (int) $transaction->payments()->sum('amount');
             $minPercent = Setting::getFloat('min_dp_percent', 0);
             $minRequired = (int) ceil($transaction->total * $minPercent / 100);
@@ -267,6 +289,20 @@ class TransactionService
 
                 if (! $stillBooked) {
                     $vehicle->update(['status' => VehicleStatus::Available]);
+                }
+            }
+
+            if ($transaction->with_driver && $transaction->driver_id) {
+                $driver = Driver::lockForUpdate()->find($transaction->driver_id);
+                if ($driver && $driver->status === 'busy') {
+                    $hasOtherActiveRentals = Transaction::where('id', '!=', $transaction->id)
+                        ->where('driver_id', $driver->id)
+                        ->where('status', TransactionStatus::Rented->value)
+                        ->exists();
+
+                    if (! $hasOtherActiveRentals) {
+                        $driver->update(['status' => 'available']);
+                    }
                 }
             }
 
