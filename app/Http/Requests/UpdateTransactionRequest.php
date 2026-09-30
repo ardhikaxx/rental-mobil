@@ -5,10 +5,12 @@ namespace App\Http\Requests;
 use App\Enums\BookingSource;
 use App\Models\Driver;
 use App\Models\Vehicle;
+use App\Services\DriverAvailabilityService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 class UpdateTransactionRequest extends FormRequest
@@ -101,6 +103,21 @@ class UpdateTransactionRequest extends FormRequest
                 $driver = Driver::find($this->input('driver_id'));
                 if ($driver) {
                     $subtotal += ($days * (int) $driver->daily_rate);
+
+                    try {
+                        app(DriverAvailabilityService::class)->assertAvailable(
+                            $driver,
+                            $startAt,
+                            $endAt,
+                            $this->route('transaction')?->id,
+                        );
+                    } catch (ValidationException $e) {
+                        foreach ($e->errors() as $key => $messages) {
+                            foreach ($messages as $msg) {
+                                $validator->errors()->add($key, $msg);
+                            }
+                        }
+                    }
                 }
             }
 
