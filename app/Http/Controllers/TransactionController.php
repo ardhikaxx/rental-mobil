@@ -16,9 +16,11 @@ use App\Models\Driver;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\Vehicle;
+use App\Services\DriverAvailabilityService;
 use App\Services\TransactionService;
 use App\Services\VehicleAvailabilityService;
 use App\Support\AuditLogger;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -126,10 +128,16 @@ class TransactionController extends Controller
             $candidates = $candidates->reject(fn (Vehicle $vehicle) => in_array($vehicle->id, $blockedIds, true))->values();
         }
 
+        $drivers = Driver::available()->orderBy('name')->get(['id', 'code', 'name', 'phone', 'daily_rate']);
+        if ($periodStart !== null && $periodEnd !== null && $periodEnd->greaterThan($periodStart)) {
+            $blockedDriverIds = app(DriverAvailabilityService::class)->blockedDriverIds($periodStart, $periodEnd);
+            $drivers = $drivers->reject(fn (Driver $driver) => in_array($driver->id, $blockedDriverIds, true))->values();
+        }
+
         return view('transactions.create', [
             'customers' => Customer::query()->orderBy('name')->get(['id', 'name', 'phone', 'id_number']),
             'vehicles' => $candidates,
-            'drivers' => Driver::available()->orderBy('name')->get(['id', 'code', 'name', 'phone', 'daily_rate']),
+            'drivers' => $drivers,
             'bookingSources' => BookingSource::options(),
             'paymentMethods' => PaymentMethod::options(),
             'prefill' => [
@@ -311,6 +319,54 @@ class TransactionController extends Controller
                 Setting::query()->pluck('value', 'key')->all(),
             ),
         ]);
+    }
+
+    public function invoicePdf(Transaction $transaction)
+    {
+        $transaction->load([
+            'customer',
+            'vehicle',
+            'driver',
+            'creator:id,name',
+            'payments.recorder:id,name',
+        ]);
+        $transaction->setAttribute('paid_amount', $transaction->paidAmount());
+
+        $values = array_merge(
+            Setting::defaults(),
+            Setting::query()->pluck('value', 'key')->all(),
+        );
+
+        $pdf = Pdf::loadView('transactions.pdf.invoice', [
+            'transaction' => $transaction,
+            'values' => $values,
+        ]);
+
+        return $pdf->download("invoice-{$transaction->transaction_number}.pdf");
+    }
+
+    public function spkPdf(Transaction $transaction)
+    {
+        $transaction->load([
+            'customer.verifiedBy:id,name',
+            'vehicle',
+            'driver',
+            'creator:id,name',
+            'payments.recorder:id,name',
+        ]);
+        $transaction->setAttribute('paid_amount', $transaction->paidAmount());
+
+        $values = array_merge(
+            Setting::defaults(),
+            Setting::query()->pluck('value', 'key')->all(),
+        );
+
+        $pdf = Pdf::loadView('transactions.pdf.spk', [
+            'transaction' => $transaction,
+            'values' => $values,
+        ]);
+
+        return $pdf->download("spk-{$transaction->transaction_number}.pdf");
     }
 
     public function updateDeposit(Request $request, Transaction $transaction): RedirectResponse
