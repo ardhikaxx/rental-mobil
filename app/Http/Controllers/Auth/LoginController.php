@@ -24,11 +24,15 @@ class LoginController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
+        $request->ensureIsNotRateLimited();
+
         $username = trim($request->string('username')->toString());
         $password = (string) $request->input('password');
         $remember = $request->boolean('remember');
 
         if (! Auth::attempt(['username' => $username, 'password' => $password], $remember)) {
+            $request->hitRateLimiter();
+
             AuditLogger::log('login_failed', 'auth', "Percobaan login gagal untuk username \"{$username}\".");
 
             throw ValidationException::withMessages([
@@ -39,6 +43,8 @@ class LoginController extends Controller
         $user = Auth::user();
 
         if (! $user->isActive()) {
+            $request->hitRateLimiter();
+
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -49,6 +55,8 @@ class LoginController extends Controller
                 'username' => 'Akun Anda telah dinonaktifkan. Hubungi Super Admin untuk mengaktifkan kembali.',
             ]);
         }
+
+        $request->clearRateLimiter();
 
         $request->session()->regenerate();
 
