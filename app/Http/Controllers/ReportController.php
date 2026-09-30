@@ -27,7 +27,7 @@ class ReportController extends Controller
         [$from, $to, $preset] = $this->resolvePeriod($request);
 
         $data = match ($type) {
-            'vehicles' => $this->vehicleReport($request),
+            'vehicles' => $this->vehicleReport($request, $from, $to),
             'customers' => $this->customerReport($request),
             default => $this->incomeReport($request, $from, $to),
         };
@@ -164,21 +164,23 @@ class ReportController extends Controller
         return (int) ($row->outstanding ?? 0);
     }
 
-    private function vehicleReport(Request $request): array
+    private function vehicleReport(Request $request, Carbon $from, Carbon $to): array
     {
         $rentalStats = Transaction::query()
-            ->selectRaw('vehicle_id, COUNT(*) as rentals, COALESCE(SUM(rental_days), 0) as days, COALESCE(SUM(total), 0) as revenue')
+            ->whereBetween('start_at', [$from, $to])
             ->whereIn('status', [
                 TransactionStatus::Booked->value,
                 TransactionStatus::ReadyForHandover->value,
                 TransactionStatus::Rented->value,
                 TransactionStatus::Completed->value,
             ])
+            ->selectRaw('vehicle_id, COUNT(*) as rentals, COALESCE(SUM(rental_days), 0) as days, COALESCE(SUM(total), 0) as revenue')
             ->groupBy('vehicle_id')
             ->get()
             ->keyBy('vehicle_id');
 
         $maintenanceStats = Maintenance::query()
+            ->whereBetween('start_date', [$from->toDateString(), $to->toDateString()])
             ->selectRaw('vehicle_id, COUNT(*) as total, COALESCE(SUM(cost), 0) as cost')
             ->groupBy('vehicle_id')
             ->get()
@@ -316,7 +318,7 @@ class ReportController extends Controller
                     'Laba Bersih Armada (Rp)',
                 ]);
 
-                $vehicleData = $this->vehicleReport($request);
+                $vehicleData = $this->vehicleReport($request, $from, $to);
                 $no = 1;
                 foreach ($vehicleData['vehicleRows'] as $row) {
                     $v = $row['vehicle'];
