@@ -8,6 +8,7 @@ use App\Enums\MaintenanceStatus;
 use App\Enums\MaintenanceType;
 use App\Enums\TransactionStatus;
 use App\Enums\VehicleStatus;
+use App\Models\Driver;
 use App\Models\Inspection;
 use App\Models\Maintenance;
 use App\Models\Transaction;
@@ -86,6 +87,20 @@ class ReturnService
                 'fuel_level' => $data['fuel_level'],
                 'status' => $nextStatus,
             ]);
+
+            if ($transaction->with_driver && $transaction->driver_id) {
+                $driver = Driver::lockForUpdate()->find($transaction->driver_id);
+                if ($driver && $driver->status !== 'inactive') {
+                    $hasOtherActiveRentals = Transaction::where('id', '!=', $transaction->id)
+                        ->where('driver_id', $driver->id)
+                        ->where('status', TransactionStatus::Rented->value)
+                        ->exists();
+
+                    if (! $hasOtherActiveRentals) {
+                        $driver->update(['status' => 'available']);
+                    }
+                }
+            }
 
             if ($nextStatus === VehicleStatus::Maintenance) {
                 Maintenance::create([
